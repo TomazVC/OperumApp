@@ -80,16 +80,101 @@ const LoginLinkText = styled.Text`
   font-weight: 600;
 `;
 
+const PasswordStrengthContainer = styled.View`
+  margin-top: ${({theme}) => theme.spacing.xs}px;
+  margin-bottom: ${({theme}) => theme.spacing.sm}px;
+`;
+
+const PasswordStrengthBar = styled.View`
+  height: 4px;
+  background-color: #E5E7EB;
+  border-radius: 2px;
+  margin-bottom: ${({theme}) => theme.spacing.xs}px;
+  overflow: hidden;
+`;
+
+const PasswordStrengthFill = styled.View<{strength: number; color: string}>`
+  height: 100%;
+  width: ${({strength}) => (strength / 5) * 100}%;
+  background-color: ${({color}) => color};
+  border-radius: 2px;
+`;
+
+const PasswordStrengthText = styled.Text<{color: string}>`
+  color: ${({color}) => color};
+  font-size: 12px;
+  font-weight: 500;
+  font-family: ${({theme}) => theme.typography.small.fontFamily};
+`;
+
+const SuccessMessage = styled.Text`
+  color: ${({theme}) => theme.colors.success || '#10B981'};
+  font-size: 12px;
+  margin-top: ${({theme}) => theme.spacing.xs}px;
+  font-family: ${({theme}) => theme.typography.small.fontFamily};
+`;
+
 const RegisterScreen: React.FC = () => {
   const navigation = useNavigation<RootStackNavigationProp>();
   const {registerWithEmail, isLoading} = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{name?: string; email?: string; password?: string}>({});
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [errors, setErrors] = useState<{name?: string; email?: string; password?: string; confirmPassword?: string}>({});
+  const [passwordStrength, setPasswordStrength] = useState(0);
+
+  // Função para calcular força da senha
+  const calculatePasswordStrength = (password: string): number => {
+    let strength = 0;
+    if (password.length >= 8) strength += 1;
+    if (/[a-z]/.test(password)) strength += 1;
+    if (/[A-Z]/.test(password)) strength += 1;
+    if (/[0-9]/.test(password)) strength += 1;
+    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+    return strength;
+  };
+
+  // Função para obter texto da força da senha
+  const getPasswordStrengthText = (strength: number): string => {
+    switch (strength) {
+      case 0:
+      case 1:
+        return 'Muito fraca';
+      case 2:
+        return 'Fraca';
+      case 3:
+        return 'Média';
+      case 4:
+        return 'Forte';
+      case 5:
+        return 'Muito forte';
+      default:
+        return '';
+    }
+  };
+
+  // Função para obter cor da força da senha
+  const getPasswordStrengthColor = (strength: number): string => {
+    switch (strength) {
+      case 0:
+      case 1:
+        return '#EF4444'; // Vermelho
+      case 2:
+        return '#F59E0B'; // Amarelo
+      case 3:
+        return '#3B82F6'; // Azul
+      case 4:
+        return '#10B981'; // Verde
+      case 5:
+        return '#059669'; // Verde escuro
+      default:
+        return '#6B7280'; // Cinza
+    }
+  };
 
   const validateForm = (): boolean => {
-    const newErrors: {name?: string; email?: string; password?: string} = {};
+    const newErrors: {name?: string; email?: string; password?: string; confirmPassword?: string} = {};
 
     if (!name.trim()) {
       newErrors.name = 'Nome completo é obrigatório';
@@ -105,12 +190,39 @@ const RegisterScreen: React.FC = () => {
 
     if (!password.trim()) {
       newErrors.password = 'Senha é obrigatória';
-    } else if (password.length < 6) {
-      newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
+    } else if (password.length < 8) {
+      newErrors.password = 'Senha deve ter pelo menos 8 caracteres';
+    } else if (passwordStrength < 3) {
+      newErrors.password = 'Senha muito fraca. Use letras maiúsculas, minúsculas, números e símbolos';
+    }
+
+    if (!confirmPassword.trim()) {
+      newErrors.confirmPassword = 'Confirmação de senha é obrigatória';
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'As senhas não coincidem';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    setPasswordStrength(calculatePasswordStrength(text));
+    
+    // Limpar erro de senha quando o usuário começar a digitar
+    if (errors.password) {
+      setErrors(prev => ({ ...prev, password: undefined }));
+    }
+  };
+
+  const handleConfirmPasswordChange = (text: string) => {
+    setConfirmPassword(text);
+    
+    // Limpar erro de confirmação quando o usuário começar a digitar
+    if (errors.confirmPassword) {
+      setErrors(prev => ({ ...prev, confirmPassword: undefined }));
+    }
   };
 
   const handleRegister = async () => {
@@ -118,9 +230,20 @@ const RegisterScreen: React.FC = () => {
 
     try {
       await registerWithEmail(name, email, password);
+      // Redirecionamento automático após registro bem-sucedido
       navigation.replace('Portfolio');
     } catch (e: any) {
-      Alert.alert('Erro', e?.message || 'Não foi possível criar sua conta. Tente novamente.');
+      console.error('Erro no registro:', e);
+      
+      // Tratar erros específicos com feedback visual nos campos
+      if (e?.message?.includes('E-mail já cadastrado')) {
+        setErrors(prev => ({ ...prev, email: 'Este e-mail já está cadastrado' }));
+      } else if (e?.message?.includes('Falha ao criar usuário')) {
+        setErrors(prev => ({ ...prev, email: 'Erro interno. Tente novamente.' }));
+      } else {
+        // Apenas erros inesperados mostram Alert
+        Alert.alert('Erro', 'Não foi possível criar sua conta. Tente novamente.');
+      }
     }
   };
 
@@ -171,12 +294,41 @@ const RegisterScreen: React.FC = () => {
                     label="Senha"
                     placeholder="Digite sua senha"
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={handlePasswordChange}
                     error={errors.password}
                     secureTextEntry
                     showPasswordToggle
                     icon={<Ionicons name="lock-closed-outline" size={20} color="#8B5CF6" />}
                   />
+                  
+                  {password.length > 0 && (
+                    <PasswordStrengthContainer>
+                      <PasswordStrengthBar>
+                        <PasswordStrengthFill 
+                          strength={passwordStrength} 
+                          color={getPasswordStrengthColor(passwordStrength)} 
+                        />
+                      </PasswordStrengthBar>
+                      <PasswordStrengthText color={getPasswordStrengthColor(passwordStrength)}>
+                        Força da senha: {getPasswordStrengthText(passwordStrength)}
+                      </PasswordStrengthText>
+                    </PasswordStrengthContainer>
+                  )}
+                  
+                  <Input
+                    label="Confirmar senha"
+                    placeholder="Digite sua senha novamente"
+                    value={confirmPassword}
+                    onChangeText={handleConfirmPasswordChange}
+                    error={errors.confirmPassword}
+                    secureTextEntry
+                    showPasswordToggle
+                    icon={<Ionicons name="lock-closed-outline" size={20} color="#8B5CF6" />}
+                  />
+                  
+                  {confirmPassword.length > 0 && password === confirmPassword && (
+                    <SuccessMessage>✓ As senhas coincidem</SuccessMessage>
+                  )}
                   
                   <ButtonContainer>
                     <Button

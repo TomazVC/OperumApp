@@ -6,7 +6,7 @@ import {Ionicons} from '@expo/vector-icons';
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
-  icon?: string;
+  icon?: string | React.ReactNode;
   iconLibrary?: 'Ionicons' | 'MaterialIcons' | 'AntDesign' | 'Feather';
   showPasswordToggle?: boolean;
 }
@@ -105,6 +105,16 @@ const Input: React.FC<InputProps> = ({
   const renderIcon = () => {
     if (!icon) return null;
     
+    // Se o ícone é um componente React, renderiza diretamente
+    if (typeof icon !== 'string') {
+      return (
+        <IconContainer>
+          {icon}
+        </IconContainer>
+      );
+    }
+    
+    // Se o ícone é uma string, renderiza como Ionicons
     return (
       <IconContainer>
         <Ionicons 

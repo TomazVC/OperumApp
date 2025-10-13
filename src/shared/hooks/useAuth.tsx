@@ -1,6 +1,6 @@
 import React, {createContext, useContext, useState, useEffect, ReactNode} from 'react';
 import {User} from '../types';
-import {setupDatabase} from '../../core/database/db';
+import {setupDatabase} from '../../core/database';
 import {authService} from '../../modules/authentication/services/authService';
 
 interface AuthContextData {
@@ -40,6 +40,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({children}) => {
       setIsLoading(true);
       const u = await authService.login(email, password);
       setUser(u);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      throw error; // Re-throw para que a tela possa exibir o erro
     } finally {
       setIsLoading(false);
     }
@@ -50,6 +53,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({children}) => {
       setIsLoading(true);
       const u = await authService.register(name, email, password);
       setUser(u);
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      throw error; // Re-throw para que a tela possa exibir o erro
     } finally {
       setIsLoading(false);
     }

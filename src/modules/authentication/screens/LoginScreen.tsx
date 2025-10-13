@@ -87,6 +87,22 @@ const LoginScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{email?: string; password?: string}>({});
 
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    // Limpar erro de email quando o usuário começar a digitar
+    if (errors.email) {
+      setErrors(prev => ({ ...prev, email: undefined }));
+    }
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    // Limpar erro de senha quando o usuário começar a digitar
+    if (errors.password) {
+      setErrors(prev => ({ ...prev, password: undefined }));
+    }
+  };
+
   const validateForm = (): boolean => {
     const newErrors: {email?: string; password?: string} = {};
 
@@ -111,9 +127,29 @@ const LoginScreen: React.FC = () => {
 
     try {
       await signInWithEmail(email, password);
+      // Redirecionamento automático após login bem-sucedido
       navigation.replace('Portfolio');
     } catch (e: any) {
-      Alert.alert('Erro', e?.message || 'Não foi possível fazer login. Tente novamente.');
+      console.error('Erro no login:', e);
+      
+      // Tratar erros específicos com feedback visual nos campos
+      if (e?.message?.includes('Credenciais inválidas')) {
+        // Diferenciação entre usuário não encontrado e senha incorreta
+        setErrors(prev => ({ 
+          ...prev, 
+          email: 'E-mail ou senha incorretos',
+          password: 'E-mail ou senha incorretos'
+        }));
+      } else if (e?.message?.includes('Usuário não encontrado')) {
+        setErrors(prev => ({ 
+          ...prev, 
+          email: 'Usuário não encontrado',
+          password: undefined
+        }));
+      } else {
+        // Apenas erros inesperados mostram Alert
+        Alert.alert('Erro', 'Não foi possível fazer login. Tente novamente.');
+      }
     }
   };
 
@@ -143,7 +179,7 @@ const LoginScreen: React.FC = () => {
                     label="E-mail"
                     placeholder="seu@email.com"
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={handleEmailChange}
                     error={errors.email}
                     autoCapitalize="none"
                     keyboardType="email-address"
@@ -154,7 +190,7 @@ const LoginScreen: React.FC = () => {
                     label="Senha"
                     placeholder="Digite sua senha"
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={handlePasswordChange}
                     error={errors.password}
                     secureTextEntry
                     showPasswordToggle

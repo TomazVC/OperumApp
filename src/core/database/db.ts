@@ -1,9 +1,133 @@
 import * as SQLite from 'expo-sqlite';
+import {Platform} from 'react-native';
 
 const DB_NAME = 'operum.db';
 let db: SQLite.SQLiteDatabase | null = null;
 
+// Detectar se estamos na web
+const isWeb = Platform.OS === 'web';
+
+// Implementação web em memória
+let webUsers: any[] = [];
+let webPortfolios: any[] = [];
+let webCache: {[key: string]: {value: string; updatedAt: number}} = {};
+let nextUserId = 1;
+let nextPortfolioId = 1;
+
 export const openDatabase = (): SQLite.SQLiteDatabase => {
+  console.log('🔍 openDatabase chamado - Plataforma:', Platform.OS, 'isWeb:', isWeb);
+  
+  if (isWeb) {
+    console.log('🌐 Usando implementação WEB do banco');
+    console.log('📊 Estado atual do banco web:', {
+      totalUsers: webUsers.length,
+      totalPortfolios: webPortfolios.length,
+      nextUserId,
+      nextPortfolioId
+    });
+    
+    // Na web, retornar implementação mock
+    return {
+      runSync: (sql: string, params: any[] = []) => {
+        console.log('🔧 WEB DB runSync:', { sql: sql.substring(0, 50) + '...', params });
+        
+        if (sql.includes('CREATE TABLE')) {
+          console.log('📋 Criando tabela (ignorado na web)');
+          return { lastInsertRowId: 0 };
+        } else if (sql.includes('INSERT INTO users')) {
+          const user = {
+            id: nextUserId++,
+            cpf: params[0],
+            name: params[1],
+            email: params[2],
+            passwordHash: params[3],
+            salt: params[4],
+            riskProfile: params[5],
+            objectives: params[6],
+            firstLogin: params[7],
+            createdAt: new Date().toISOString()
+          };
+          
+          console.log('👤 WEB DB: Salvando usuário:', {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            hasPasswordHash: !!user.passwordHash,
+            hasSalt: !!user.salt
+          });
+          
+          webUsers.push(user);
+          return { lastInsertRowId: user.id };
+        } else if (sql.includes('INSERT INTO portfolios')) {
+          const item = {
+            id: nextPortfolioId++,
+            userId: params[0],
+            assetName: params[1],
+            assetType: params[2],
+            amount: params[3],
+            isDemo: params[4]
+          };
+          webPortfolios.push(item);
+          return { lastInsertRowId: item.id };
+        } else if (sql.includes('REPLACE INTO cache')) {
+          webCache[params[0]] = { value: params[1], updatedAt: params[2] };
+          return { lastInsertRowId: 0 };
+        } else if (sql.includes('DELETE FROM')) {
+          if (sql.includes('users')) {
+            const userId = params[0];
+            webUsers = webUsers.filter(u => u.id !== userId);
+            webPortfolios = webPortfolios.filter(p => p.userId !== userId);
+          }
+          return { lastInsertRowId: 0 };
+        }
+        return { lastInsertRowId: 0 };
+      },
+      getFirstSync: (sql: string, params: any[] = []) => {
+        console.log('🔍 WEB DB getFirstSync:', { sql: sql.substring(0, 50) + '...', params });
+        
+        if (sql.includes('SELECT * FROM users WHERE email')) {
+          const user = webUsers.find(u => u.email === params[0]) || null;
+          console.log('👤 WEB DB: Buscando usuário por email:', {
+            email: params[0],
+            found: !!user,
+            totalUsers: webUsers.length,
+            userData: user ? {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              hasPasswordHash: !!user.passwordHash,
+              hasSalt: !!user.salt
+            } : null
+          });
+          return user;
+        } else if (sql.includes('SELECT * FROM users WHERE cpf')) {
+          const user = webUsers.find(u => u.cpf === params[0]) || null;
+          console.log('👤 WEB DB: Buscando usuário por CPF:', {
+            cpf: params[0],
+            found: !!user
+          });
+          return user;
+        } else if (sql.includes('SELECT value, updatedAt FROM cache')) {
+          return webCache[params[0]] || null;
+        }
+        return null;
+      },
+      getAllSync: (sql: string, params: any[] = []) => {
+        console.log('📋 WEB DB getAllSync:', { sql: sql.substring(0, 50) + '...', params });
+        
+        if (sql.includes('SELECT * FROM portfolios WHERE userId')) {
+          return webPortfolios.filter(p => p.userId === params[0]);
+        } else if (sql.includes('SELECT * FROM users ORDER BY createdAt DESC')) {
+          console.log('👥 WEB DB: Retornando todos os usuários:', webUsers.length);
+          return [...webUsers].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+        return [];
+      },
+      transaction: () => {},
+    } as any;
+  }
+  
+  console.log('📱 Usando implementação MOBILE do banco (SQLite)');
   if (db) return db;
   db = SQLite.openDatabaseSync(DB_NAME);
   return db;
@@ -11,9 +135,10 @@ export const openDatabase = (): SQLite.SQLiteDatabase => {
 
 export const setupDatabase = (): void => {
   const database = openDatabase();
-  database.transaction(tx => {
+  
+  try {
     // users: add auth fields and firstLogin flag
-    tx.executeSql(`
+    database.runSync(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         cpf TEXT UNIQUE,
@@ -29,7 +154,7 @@ export const setupDatabase = (): void => {
     `);
 
     // portfolios (positions)
-    tx.executeSql(`
+    database.runSync(`
       CREATE TABLE IF NOT EXISTS portfolios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         userId INTEGER,
@@ -43,7 +168,7 @@ export const setupDatabase = (): void => {
     `);
 
     // simple persistent cache for quotes/macro values
-    tx.executeSql(`
+    database.runSync(`
       CREATE TABLE IF NOT EXISTS cache (
         key TEXT PRIMARY KEY,
         value TEXT,
@@ -52,7 +177,7 @@ export const setupDatabase = (): void => {
     `);
 
     // answers for risk questionnaire
-    tx.executeSql(`
+    database.runSync(`
       CREATE TABLE IF NOT EXISTS user_answers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         userId INTEGER,
@@ -62,7 +187,10 @@ export const setupDatabase = (): void => {
         FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
       );
     `);
-  });
+  } catch (error) {
+    console.error('Error setting up database:', error);
+    throw error;
+  }
 };
 
 export interface User {
@@ -88,68 +216,88 @@ export interface PortfolioItem {
 }
 
 export const insertUser = (user: Omit<User, 'id' | 'createdAt'>): number => {
-  const database = openDatabase();
-  let insertId: number = 0;
-  
-  database.transaction(tx => {
-    tx.executeSql(
-      'INSERT INTO users (cpf, name, email, passwordHash, salt, riskProfile, objectives, firstLogin) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [user.cpf || null, user.name, user.email || null, user.passwordHash || null, user.salt || null, user.riskProfile || null, user.objectives || null, user.firstLogin ?? 1],
-      (_, result) => {
-        insertId = result.insertId;
-      },
-      (_, error) => {
-        console.error('Error inserting user:', error);
-        return false;
-      }
-    );
+  console.log('💾 insertUser chamado com dados:', {
+    name: user.name,
+    email: user.email,
+    hasPasswordHash: !!user.passwordHash,
+    hasSalt: !!user.salt
   });
   
-  return insertId;
+  const database = openDatabase();
+  
+  // Debug: verificar estado antes da inserção
+  if (Platform.OS === 'web') {
+    console.log('🌐 Estado do banco ANTES da inserção:', {
+      totalUsers: webUsers.length,
+      users: webUsers.map(u => ({ id: u.id, email: u.email, name: u.name }))
+    });
+  }
+  
+  try {
+    const result = database.runSync(
+      'INSERT INTO users (cpf, name, email, passwordHash, salt, riskProfile, objectives, firstLogin) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [user.cpf || null, user.name, user.email || null, user.passwordHash || null, user.salt || null, user.riskProfile || null, user.objectives || null, user.firstLogin ?? 1]
+    );
+    
+    // Debug: verificar estado após a inserção
+    if (Platform.OS === 'web') {
+      console.log('🌐 Estado do banco APÓS a inserção:', {
+        totalUsers: webUsers.length,
+        users: webUsers.map(u => ({ id: u.id, email: u.email, name: u.name })),
+        newUserId: result.lastInsertRowId
+      });
+    }
+    
+    console.log('✅ Usuário inserido com ID:', result.lastInsertRowId);
+    return result.lastInsertRowId;
+  } catch (error) {
+    console.error('Error inserting user:', error);
+    throw error;
+  }
 };
 
 export const getUserByCPF = (cpf: string): User | null => {
   const database = openDatabase();
-  let user: User | null = null;
   
-  database.transaction(tx => {
-    tx.executeSql(
+  try {
+    const result = database.getFirstSync(
       'SELECT * FROM users WHERE cpf = ?',
-      [cpf],
-      (_, result) => {
-        if (result.rows.length > 0) {
-          user = result.rows.item(0);
-        }
-      },
-      (_, error) => {
-        console.error('Error getting user by CPF:', error);
-        return false;
-      }
+      [cpf]
     );
-  });
-  
-  return user;
+    return result || null;
+  } catch (error) {
+    console.error('Error getting user by CPF:', error);
+    return null;
+  }
 };
 
 export const getUserByEmail = (email: string): User | null => {
+  console.log('🔍 getUserByEmail chamado com email:', email);
+  console.log('🔍 getUserByEmail - Função exportada corretamente');
+  
   const database = openDatabase();
-  let user: User | null = null;
-  database.transaction(tx => {
-    tx.executeSql(
+  console.log('🔍 Database obtido:', typeof database);
+  console.log('🔍 Database tem getFirstSync?', typeof database.getFirstSync);
+  
+  // Debug: verificar estado atual do banco web
+  if (Platform.OS === 'web') {
+    console.log('🌐 Estado atual do banco web:', {
+      totalUsers: webUsers.length,
+      users: webUsers.map(u => ({ id: u.id, email: u.email, name: u.name }))
+    });
+  }
+  
+  try {
+    const result = database.getFirstSync(
       'SELECT * FROM users WHERE email = ?',
-      [email],
-      (_, result) => {
-        if (result.rows.length > 0) {
-          user = result.rows.item(0);
-        }
-      },
-      (_, error) => {
-        console.error('Error getting user by email:', error);
-        return false;
-      }
+      [email]
     );
-  });
-  return user;
+    console.log('🔍 Resultado da busca:', result);
+    return result || null;
+  } catch (error) {
+    console.error('Error getting user by email:', error);
+    return null;
+  }
 };
 
 export const updateUser = (userId: number, data: Partial<Pick<User, 'name' | 'email' | 'riskProfile'>>): void => {
@@ -161,92 +309,87 @@ export const updateUser = (userId: number, data: Partial<Pick<User, 'name' | 'em
   if (data.riskProfile !== undefined) { fields.push('riskProfile = ?'); values.push(data.riskProfile); }
   if (fields.length === 0) return;
   values.push(userId);
-  database.transaction(tx => {
-    tx.executeSql(
+  
+  try {
+    database.runSync(
       `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
       values
     );
-  });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    throw error;
+  }
 };
 
 export const deleteUserById = (userId: number): void => {
   const database = openDatabase();
-  database.transaction(tx => {
-    tx.executeSql('DELETE FROM portfolios WHERE userId = ?', [userId]);
-    tx.executeSql('DELETE FROM user_answers WHERE userId = ?', [userId]);
-    tx.executeSql('DELETE FROM users WHERE id = ?', [userId]);
-  });
+  
+  try {
+    database.runSync('DELETE FROM portfolios WHERE userId = ?', [userId]);
+    database.runSync('DELETE FROM user_answers WHERE userId = ?', [userId]);
+    database.runSync('DELETE FROM users WHERE id = ?', [userId]);
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
 };
 
 export const listPortfolioByUserId = (userId: number): PortfolioItem[] => {
   const database = openDatabase();
-  const items: PortfolioItem[] = [];
   
-  database.transaction(tx => {
-    tx.executeSql(
+  try {
+    const result = database.getAllSync(
       'SELECT * FROM portfolios WHERE userId = ?',
-      [userId],
-      (_, result) => {
-        for (let i = 0; i < result.rows.length; i++) {
-          items.push(result.rows.item(i));
-        }
-      },
-      (_, error) => {
-        console.error('Error listing portfolio:', error);
-        return false;
-      }
+      [userId]
     );
-  });
-  
-  return items;
+    return result || [];
+  } catch (error) {
+    console.error('Error listing portfolio:', error);
+    return [];
+  }
 };
 
 export const insertPortfolioItem = (item: Omit<PortfolioItem, 'id'>): number => {
   const database = openDatabase();
-  let insertId: number = 0;
   
-  database.transaction(tx => {
-    tx.executeSql(
+  try {
+    const result = database.runSync(
       'INSERT INTO portfolios (userId, assetName, assetType, amount, isDemo) VALUES (?, ?, ?, ?, ?)',
-      [item.userId, item.assetName, item.assetType || null, item.amount, item.isDemo ?? 0],
-      (_, result) => {
-        insertId = result.insertId;
-      },
-      (_, error) => {
-        console.error('Error inserting portfolio item:', error);
-        return false;
-      }
+      [item.userId, item.assetName, item.assetType || null, item.amount, item.isDemo ?? 0]
     );
-  });
-  
-  return insertId;
+    return result.lastInsertRowId;
+  } catch (error) {
+    console.error('Error inserting portfolio item:', error);
+    throw error;
+  }
 };
 
 // Persistent cache helpers
 export const getCache = (key: string): {value: string; updatedAt: number} | null => {
   const database = openDatabase();
-  let row: {value: string; updatedAt: number} | null = null;
-  database.transaction(tx => {
-    tx.executeSql(
+  
+  try {
+    const result = database.getFirstSync(
       'SELECT value, updatedAt FROM cache WHERE key = ? LIMIT 1',
-      [key],
-      (_, result) => {
-        if (result.rows.length > 0) {
-          row = result.rows.item(0);
-        }
-      },
-      () => false
+      [key]
     );
-  });
-  return row;
+    return result || null;
+  } catch (error) {
+    console.error('Error getting cache:', error);
+    return null;
+  }
 };
 
 export const setCache = (key: string, value: string, updatedAt: number): void => {
   const database = openDatabase();
-  database.transaction(tx => {
-    tx.executeSql(
+  
+  try {
+    database.runSync(
       'REPLACE INTO cache (key, value, updatedAt) VALUES (?, ?, ?)',
       [key, value, updatedAt]
     );
-  });
+  } catch (error) {
+    console.error('Error setting cache:', error);
+    throw error;
+  }
 };
