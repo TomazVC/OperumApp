@@ -7,12 +7,103 @@ let db: SQLite.SQLiteDatabase | null = null;
 // Detectar se estamos na web
 const isWeb = Platform.OS === 'web';
 
-// Implementação web em memória
+// Implementação web com localStorage
 let webUsers: any[] = [];
 let webPortfolios: any[] = [];
 let webCache: {[key: string]: {value: string; updatedAt: number}} = {};
 let nextUserId = 1;
 let nextPortfolioId = 1;
+
+// Funções para persistência com localStorage
+const loadFromLocalStorage = () => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    try {
+      const storedUsers = localStorage.getItem('operum_webUsers');
+      const storedPortfolios = localStorage.getItem('operum_webPortfolios');
+      const storedCache = localStorage.getItem('operum_webCache');
+      const storedNextUserId = localStorage.getItem('operum_nextUserId');
+      const storedNextPortfolioId = localStorage.getItem('operum_nextPortfolioId');
+
+      if (storedUsers) {
+        webUsers = JSON.parse(storedUsers);
+        console.log('📱 Carregados do localStorage:', webUsers.length, 'usuários');
+      }
+      if (storedPortfolios) {
+        webPortfolios = JSON.parse(storedPortfolios);
+      }
+      if (storedCache) {
+        webCache = JSON.parse(storedCache);
+      }
+      if (storedNextUserId) {
+        nextUserId = parseInt(storedNextUserId);
+      }
+      if (storedNextPortfolioId) {
+        nextPortfolioId = parseInt(storedNextPortfolioId);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar do localStorage:', error);
+    }
+  }
+};
+
+const saveToLocalStorage = () => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('operum_webUsers', JSON.stringify(webUsers));
+      localStorage.setItem('operum_webPortfolios', JSON.stringify(webPortfolios));
+      localStorage.setItem('operum_webCache', JSON.stringify(webCache));
+      localStorage.setItem('operum_nextUserId', nextUserId.toString());
+      localStorage.setItem('operum_nextPortfolioId', nextPortfolioId.toString());
+      console.log('💾 Dados salvos no localStorage');
+    } catch (error) {
+      console.error('Erro ao salvar no localStorage:', error);
+    }
+  }
+};
+
+// Carregar dados do localStorage na inicialização
+loadFromLocalStorage();
+
+// Função de debug para verificar estado global
+export const debugWebState = () => {
+  console.log('🐛 DEBUG - Estado global das variáveis web:', {
+    webUsersLength: webUsers.length,
+    nextUserId,
+    nextPortfolioId,
+    users: webUsers.map(u => ({ id: u.id, email: u.email, name: u.name }))
+  });
+  return {
+    webUsersLength: webUsers.length,
+    nextUserId,
+    nextPortfolioId,
+    users: webUsers.map(u => ({ id: u.id, email: u.email, name: u.name }))
+  };
+};
+
+// Função de teste para criar um usuário de teste
+export const createTestUser = () => {
+  if (Platform.OS === 'web') {
+    console.log('🧪 Criando usuário de teste...');
+    const testUser = {
+      id: nextUserId++,
+      cpf: '12345678901',
+      name: 'Usuário Teste',
+      email: 'teste@teste.com',
+      passwordHash: 'hash_teste',
+      salt: 'salt_teste',
+      riskProfile: 'moderado',
+      objectives: 'crescimento',
+      firstLogin: 1,
+      createdAt: new Date().toISOString()
+    };
+    
+    webUsers.push(testUser);
+    console.log('🧪 Usuário de teste criado:', testUser);
+    console.log('🧪 Total de usuários agora:', webUsers.length);
+    return testUser;
+  }
+  return null;
+};
 
 export const openDatabase = (): SQLite.SQLiteDatabase => {
   console.log('🔍 openDatabase chamado - Plataforma:', Platform.OS, 'isWeb:', isWeb);
@@ -56,7 +147,14 @@ export const openDatabase = (): SQLite.SQLiteDatabase => {
             hasSalt: !!user.salt
           });
           
+          console.log('📊 ANTES de adicionar - webUsers.length:', webUsers.length);
           webUsers.push(user);
+          console.log('📊 APÓS adicionar - webUsers.length:', webUsers.length);
+          console.log('📊 Lista completa de usuários:', webUsers.map(u => ({ id: u.id, email: u.email, name: u.name })));
+          
+          // Salvar no localStorage após inserção
+          saveToLocalStorage();
+          
           return { lastInsertRowId: user.id };
         } else if (sql.includes('INSERT INTO portfolios')) {
           const item = {
@@ -68,9 +166,11 @@ export const openDatabase = (): SQLite.SQLiteDatabase => {
             isDemo: params[4]
           };
           webPortfolios.push(item);
+          saveToLocalStorage();
           return { lastInsertRowId: item.id };
         } else if (sql.includes('REPLACE INTO cache')) {
           webCache[params[0]] = { value: params[1], updatedAt: params[2] };
+          saveToLocalStorage();
           return { lastInsertRowId: 0 };
         } else if (sql.includes('DELETE FROM')) {
           if (sql.includes('users')) {
@@ -78,6 +178,7 @@ export const openDatabase = (): SQLite.SQLiteDatabase => {
             webUsers = webUsers.filter(u => u.id !== userId);
             webPortfolios = webPortfolios.filter(p => p.userId !== userId);
           }
+          saveToLocalStorage();
           return { lastInsertRowId: 0 };
         }
         return { lastInsertRowId: 0 };
@@ -86,6 +187,12 @@ export const openDatabase = (): SQLite.SQLiteDatabase => {
         console.log('🔍 WEB DB getFirstSync:', { sql: sql.substring(0, 50) + '...', params });
         
         if (sql.includes('SELECT * FROM users WHERE email')) {
+          console.log('🔍 Buscando usuário por email:', params[0]);
+          console.log('📊 Estado atual de webUsers:', {
+            length: webUsers.length,
+            users: webUsers.map(u => ({ id: u.id, email: u.email, name: u.name }))
+          });
+          
           const user = webUsers.find(u => u.email === params[0]) || null;
           console.log('👤 WEB DB: Buscando usuário por email:', {
             email: params[0],
@@ -222,6 +329,8 @@ export const insertUser = (user: Omit<User, 'id' | 'createdAt'>): number => {
     hasPasswordHash: !!user.passwordHash,
     hasSalt: !!user.salt
   });
+  console.log('💾 Platform.OS:', Platform.OS);
+  console.log('💾 isWeb:', Platform.OS === 'web');
   
   const database = openDatabase();
   
@@ -246,6 +355,10 @@ export const insertUser = (user: Omit<User, 'id' | 'createdAt'>): number => {
         users: webUsers.map(u => ({ id: u.id, email: u.email, name: u.name })),
         newUserId: result.lastInsertRowId
       });
+      
+      // Verificação adicional: buscar o usuário recém-inserido
+      const insertedUser = webUsers.find(u => u.id === result.lastInsertRowId);
+      console.log('🔍 Usuário recém-inserido encontrado:', insertedUser);
     }
     
     console.log('✅ Usuário inserido com ID:', result.lastInsertRowId);
@@ -273,7 +386,8 @@ export const getUserByCPF = (cpf: string): User | null => {
 
 export const getUserByEmail = (email: string): User | null => {
   console.log('🔍 getUserByEmail chamado com email:', email);
-  console.log('🔍 getUserByEmail - Função exportada corretamente');
+  console.log('🔍 Platform.OS:', Platform.OS);
+  console.log('🔍 isWeb:', Platform.OS === 'web');
   
   const database = openDatabase();
   console.log('🔍 Database obtido:', typeof database);
@@ -285,6 +399,10 @@ export const getUserByEmail = (email: string): User | null => {
       totalUsers: webUsers.length,
       users: webUsers.map(u => ({ id: u.id, email: u.email, name: u.name }))
     });
+    
+    // Verificação adicional: buscar diretamente no array
+    const directSearch = webUsers.find(u => u.email === email);
+    console.log('🔍 Busca direta no array webUsers:', directSearch);
   }
   
   try {
@@ -292,7 +410,7 @@ export const getUserByEmail = (email: string): User | null => {
       'SELECT * FROM users WHERE email = ?',
       [email]
     );
-    console.log('🔍 Resultado da busca:', result);
+    console.log('🔍 Resultado da busca via getFirstSync:', result);
     return result || null;
   } catch (error) {
     console.error('Error getting user by email:', error);

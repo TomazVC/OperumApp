@@ -153,6 +153,7 @@ const LoginScreen: React.FC = () => {
     }
   };
 
+
   const handleRegister = () => {
     navigation.navigate('Register');
   };
