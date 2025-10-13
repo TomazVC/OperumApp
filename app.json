@@ -1,4 +1,33 @@
 {
-  "name": "OperumApp",
-  "displayName": "OperumApp"
+  "expo": {
+    "name": "Operum - Assessor Virtual de Investimentos",
+    "slug": "operum-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.operum.app"
+    },
+    "android": {
+      "package": "com.operum.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sqlite"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
 }

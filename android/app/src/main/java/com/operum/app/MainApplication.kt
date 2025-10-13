@@ -1,4 +1,4 @@
-package com.operumapp
+package com.operum.app
 
 import android.app.Application
 import com.facebook.react.PackageList

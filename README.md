@@ -1,97 +1,171 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Operum - Assessor Virtual de Investimentos
 
-# Getting Started
+App React Native com TypeScript para assessoria de investimentos.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## 🚀 Tecnologias
 
-## Step 1: Start Metro
+- React Native 0.82.0
+- TypeScript
+- React Navigation v6
+- Styled Components
+- SQLite (react-native-sqlite-storage)
+- Axios
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## 📱 Funcionalidades
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+- ✅ Navegação entre telas
+- ✅ Autenticação mock
+- ✅ Banco de dados SQLite local
+- ✅ Portfólio de investimentos
+- ✅ Chatbot com IA mock
+- ✅ Tema personalizado
+- ✅ Componentes reutilizáveis
 
-```sh
-# Using npm
-npm start
+## 🛠️ Instalação
 
-# OR using Yarn
-yarn start
+1. Clone o repositório
+2. Instale as dependências:
+   ```bash
+   npm install
+   ```
+
+3. Para iOS:
+   ```bash
+   cd ios && pod install && cd ..
+   npm run ios
+   ```
+
+4. Para Android:
+   ```bash
+   npm run android
+   ```
+
+5. Para Web (navegador):
+   ```bash
+   npm run web
+   ```
+
+6. Para iOS (macOS apenas):
+   ```bash
+   npm run ios
+   ```
+
+## 📦 Dependências Principais
+
+```bash
+npm i @react-navigation/native @react-navigation/native-stack react-native-screens react-native-safe-area-context
+npm i styled-components axios expo-sqlite
+npm i -D @types/styled-components-react-native babel-plugin-module-resolver
 ```
 
-## Step 2: Build and run your app
+## 🔧 Configuração SQLite
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+O `expo-sqlite` funciona nativamente em todas as plataformas sem configuração adicional:
 
-### Android
+- **Android**: Funciona automaticamente
+- **iOS**: Funciona automaticamente  
+- **Web**: Funciona nativamente no navegador
+- **Configuração**: Nenhuma configuração adicional necessária
 
-```sh
-# Using npm
-npm run android
+## 📁 Estrutura do Projeto
 
-# OR using Yarn
-yarn android
+```
+src/
+├── App.tsx
+├── core/
+│   ├── api/
+│   ├── ai/
+│   ├── database/
+│   └── navigation/
+├── modules/
+│   ├── authentication/
+│   ├── portfolio/
+│   └── chatbot/
+└── shared/
+    ├── components/
+    ├── hooks/
+    ├── theme/
+    ├── types/
+    └── utils/
 ```
 
-### iOS
+## 🎨 Tema
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+O app utiliza um tema personalizado com cores e espaçamentos consistentes:
+- Background: #0F1220
+- Primary: #3b4d9b
+- Secondary: #c7559b
+- Surface: #1C1F2E
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+## 📱 Telas
 
-```sh
-bundle install
-```
+1. **Onboarding**: Introdução ao app
+2. **Login**: Autenticação com CPF/email
+3. **Portfolio**: Visualização do portfólio
+4. **Chatbot**: Assistente virtual
 
-Then, and every time you update your native dependencies, run:
+## 🔄 Scripts
 
-```sh
-bundle exec pod install
-```
+- `npm start`: Inicia o Expo development server
+- `npm run android`: Executa no Android
+- `npm run ios`: Executa no iOS
+- `npm run web`: Executa no navegador (desenvolvimento)
+- `npm run build:android`: Gera build de produção para Android
+- `npm run build:ios`: Gera build de produção para iOS
+- `npm run lint`: Executa o ESLint
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+## 🌐 Suporte Web
 
-```sh
-# Using npm
-npm run ios
+O app funciona nativamente no navegador usando Expo:
 
-# OR using Yarn
-yarn ios
-```
+- **Desenvolvimento**: `npm run web` (abre automaticamente no navegador)
+- **SQLite Web**: Funciona nativamente na web sem mocks
+- **Simulação Mobile**: Interface otimizada para visualização mobile no desktop
+- **Responsivo**: Adapta-se automaticamente ao tamanho da tela
+- **Hot Reload**: Atualizações em tempo real durante desenvolvimento
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## 📝 Notas
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+- O app utiliza mock data para demonstração
+- SQLite funciona nativamente em todas as plataformas (mobile e web)
+- Todos os componentes são tipados com TypeScript
+- Interface responsiva e moderna
+- Desenvolvido com Expo para máxima compatibilidade
+- Hot reload e desenvolvimento mais rápido
 
-## Step 3: Modify your app
+## 🏗️ Arquitetura
 
-Now that you have successfully run the app, let's make changes!
+O projeto segue a arquitetura **Feature-Sliced Design**:
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+- **Core**: Funcionalidades centrais (navegação, banco, API, IA)
+- **Modules**: Funcionalidades específicas (auth, portfolio, chatbot)
+- **Shared**: Componentes, hooks, utils e tipos compartilhados
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+## 🔐 Autenticação
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+- Sistema mock com validação de CPF/email
+- Persistência de usuários no SQLite
+- Context API para gerenciamento de estado
 
-## Congratulations! :tada:
+## 💼 Portfólio
 
-You've successfully run and modified your React Native App. :partying_face:
+- Visualização de investimentos
+- Criação automática de portfólio padrão
+- Cálculo de valor total
+- Integração com banco SQLite
 
-### Now what?
+## 🤖 Chatbot
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+- Interface de chat moderna
+- Respostas mock com delay simulado
+- Auto-scroll para última mensagem
+- Integração com serviços de IA
 
-# Troubleshooting
+## 🎯 Próximos Passos
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+- [ ] Integração com APIs reais (BACEN, IBGE, B3)
+- [ ] Implementação de IA real
+- [ ] Gráficos de performance
+- [ ] Notificações push
+- [ ] Modo offline
+- [ ] Testes automatizados
