@@ -2,6 +2,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
   Register: undefined;
+  RiskProfile: { userId: number };
   Portfolio: undefined;
   Chatbot: undefined;
 };

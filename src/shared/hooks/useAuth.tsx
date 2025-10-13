@@ -7,7 +7,7 @@ interface AuthContextData {
   user: User | null;
   isLoading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  registerWithEmail: (name: string, email: string, password: string) => Promise<void>;
+  registerWithEmail: (name: string, email: string, password: string) => Promise<User>;
   signOut: () => void;
 }
 
@@ -48,11 +48,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({children}) => {
     }
   };
 
-  const registerWithEmail = async (name: string, email: string, password: string) => {
+  const registerWithEmail = async (name: string, email: string, password: string): Promise<User> => {
     try {
       setIsLoading(true);
       const u = await authService.register(name, email, password);
       setUser(u);
+      return u; // Retornar o usuário criado
     } catch (error: any) {
       console.error('Registration error:', error);
       throw error; // Re-throw para que a tela possa exibir o erro

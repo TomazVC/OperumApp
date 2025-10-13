@@ -25,6 +25,24 @@ export interface ChatMessage {
 
 export type RiskProfile = 'Conservador' | 'Moderado' | 'Agressivo';
 
+// Tipos para questionário de perfil de investidor
+export interface QuestionOption {
+  id: string;
+  text: string;
+  value: number; // Pontuação para cálculo do perfil
+}
+
+export interface RiskQuestion {
+  id: string;
+  question: string;
+  subtitle: string;
+  options: QuestionOption[];
+}
+
+export interface RiskProfileAnswers {
+  [questionId: string]: number; // questionId -> option value
+}
+
 // Novos tipos para API do Dados de Mercado
 export interface StockQuote {
   ticker: string;

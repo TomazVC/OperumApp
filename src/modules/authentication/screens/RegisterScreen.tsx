@@ -229,9 +229,9 @@ const RegisterScreen: React.FC = () => {
     if (!validateForm()) return;
 
     try {
-      await registerWithEmail(name, email, password);
-      // Redirecionamento automático após registro bem-sucedido
-      navigation.replace('Portfolio');
+      const user = await registerWithEmail(name, email, password);
+      // Redirecionamento para questionário de perfil após registro bem-sucedido
+      navigation.replace('RiskProfile', { userId: user.id });
     } catch (e: any) {
       console.error('Erro no registro:', e);
       
