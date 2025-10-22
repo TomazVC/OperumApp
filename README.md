@@ -1,3 +1,5 @@
+Readme inicial:
+
 # Operum - Assessor Virtual de Investimentos
 
 App React Native com TypeScript para assessoria de investimentos.
