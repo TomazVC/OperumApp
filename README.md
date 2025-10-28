@@ -156,12 +156,31 @@ O projeto segue a arquitetura **Feature-Sliced Design**:
 - Cálculo de valor total
 - Integração com banco SQLite
 
-## 🤖 Chatbot
+## 🤖 Chatbot com IA Local (Ollama)
 
-- Interface de chat moderna
-- Respostas mock com delay simulado
+- Interface de chat moderna e responsiva
+- Integração com Ollama para IA local (gratuita e privada)
+- Fallback automático para mock inteligente
 - Auto-scroll para última mensagem
-- Integração com serviços de IA
+- Indicador de digitação
+- Avatar do assistente
+
+### Configuração do Ollama
+
+Para usar IA real, instale o Ollama e baixe um modelo:
+
+```bash
+# Instalar Ollama
+https://ollama.com/download
+
+# Baixar modelo (phi3:mini - recomendado)
+ollama pull phi3:mini
+
+# Iniciar servidor
+ollama serve
+```
+
+📖 **Detalhes completos**: [docs/ollama-setup.md](docs/ollama-setup.md)
 
 ## 🎯 Próximos Passos
 

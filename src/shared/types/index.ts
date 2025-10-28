@@ -21,7 +21,11 @@ export interface ChatMessage {
   text: string;
   isUser: boolean;
   timestamp: string;
+  userId?: number;
+  role?: 'system' | 'user' | 'assistant';
 }
+
+export type ChatRole = 'system' | 'user' | 'assistant';
 
 export type RiskProfile = 'Conservador' | 'Moderado' | 'Agressivo';
 
