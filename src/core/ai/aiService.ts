@@ -1,4 +1,4 @@
-import {HUGGING_FACE_API_TOKEN, HUGGING_FACE_MODEL, OLLAMA_API_URL, OLLAMA_MODEL} from '../../config/env';
+import {OLLAMA_API_URL, OLLAMA_MODEL} from '../../config/env';
 import {getChatHistory} from '../database/db';
 import axios from 'axios';
 
