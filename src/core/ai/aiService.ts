@@ -14,25 +14,9 @@ export interface AssetExplanation {
   recommendation: string;
 }
 
-export interface HuggingFaceMessage {
+export interface Message {
   role: 'system' | 'user' | 'assistant';
   content: string;
-}
-
-export interface HuggingFaceRequest {
-  model: string;
-  messages: HuggingFaceMessage[];
-  max_new_tokens?: number;
-  temperature?: number;
-}
-
-export interface HuggingFaceResponse {
-  choices: Array<{
-    message: {
-      role: string;
-      content: string;
-    };
-  }>;
 }
 
 // System prompt para o assistente
@@ -42,14 +26,14 @@ Se não souber responder, oriente o usuário a reformular ou procure outra forma
 Para dados pessoais sensíveis (como saldo), informe que não pode acessar e oriente onde verificar no app.`;
 
 /**
- * Constrói o array de mensagens para a API da Hugging Face
+ * Constrói o array de mensagens para o chatbot
  */
-export const buildMessagesArray = (userId: number, userMessage: string): HuggingFaceMessage[] => {
+export const buildMessagesArray = (userId: number, userMessage: string): Message[] => {
   // Recuperar histórico do usuário
   const history = getChatHistory(userId, 10);
   
   // Construir array de mensagens
-  const messages: HuggingFaceMessage[] = [
+  const messages: Message[] = [
     {role: 'system', content: SYSTEM_PROMPT}
   ];
   
@@ -76,7 +60,7 @@ export const buildMessagesArray = (userId: number, userMessage: string): Hugging
  * Chama o Ollama para obter resposta do chatbot (IA local)
  * Faz fallback para mock se Ollama não estiver disponível
  */
-export const callHuggingFaceAPI = async (messages: HuggingFaceMessage[]): Promise<string> => {
+export const callOllamaAPI = async (messages: Message[]): Promise<string> => {
   const lastUserMessage = messages.filter(m => m.role === 'user').pop();
   const userInput = lastUserMessage?.content || '';
   
