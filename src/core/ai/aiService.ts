@@ -113,23 +113,47 @@ export interface Message {
 }
 
 // System prompt otimizado para o assistente Operum
-const SYSTEM_PROMPT = `Você é o assistente virtual do Operum. Responda sobre investimentos brasileiros de forma clara e amigável.
+const SYSTEM_PROMPT = `Você é o assistente virtual do Operum, especializado EXCLUSIVAMENTE em investimentos brasileiros.
 
-Regras importantes:
+REGRAS OBRIGATÓRIAS:
+- Responda APENAS sobre investimentos, finanças e produtos financeiros brasileiros
+- Se a pergunta NÃO for sobre investimentos/finanças, responda: "Posso ajudar apenas com investimentos brasileiros. Qual sua dúvida sobre CDB, Tesouro, ações, FIIs ou ETFs?"
 - SEMPRE complete sua resposta, mesmo que precise resumir
-- Foque apenas em produtos brasileiros (CDB, LCI, LCA, Tesouro, Ações, FIIs, ETFs)
 - Para dados pessoais: "Acesse Menu > Carteira no app"
 - Use linguagem natural e direta
-- Evite formatação excessiva (use apenas quando necessário)
-- Se não souber algo, peça para reformular a pergunta
 - IMPORTANTE: termine sempre com uma frase completa, nunca corte no meio
 
-Produtos que conheço:
+PRODUTOS QUE CONHEÇO (APENAS ESTES):
 - Renda Fixa: CDB, LCI, LCA, Tesouro Selic, Tesouro IPCA+
 - Renda Variável: Ações, FIIs, ETFs
 - Reserva de Emergência: Tesouro Selic, CDB liquidez diária
+- Conceitos: risco, liquidez, tributação, diversificação
 
-NÃO mencione produtos americanos como Roth IRA, Traditional IRA ou outros produtos internacionais.`;
+PROIBIDO:
+- Receitas de comida, culinária, gastronomia
+- Produtos americanos (Roth IRA, Traditional IRA)
+- Assuntos não financeiros (esportes, política, entretenimento)
+- Qualquer tema fora de investimentos brasileiros`;
+
+/**
+ * Verifica se a pergunta está fora do contexto financeiro
+ */
+const isOutOfFinanceContext = (userInput: string): boolean => {
+  const input = userInput.toLowerCase();
+  
+  // Palavras-chave que indicam assuntos não financeiros
+  const nonFinanceKeywords = [
+    'receita', 'bolo', 'comida', 'culinária', 'gastronomia', 'cozinha',
+    'esporte', 'futebol', 'política', 'eleição', 'entretenimento',
+    'filme', 'música', 'viagem', 'turismo', 'saúde', 'medicina',
+    'educação', 'escola', 'universidade', 'trabalho', 'emprego',
+    'relacionamento', 'amor', 'família', 'casa', 'decoração',
+    'moda', 'roupa', 'beleza', 'exercício', 'academia'
+  ];
+  
+  // Se contém palavras não financeiras, está fora do contexto
+  return nonFinanceKeywords.some(keyword => input.includes(keyword));
+};
 
 /**
  * Verifica se a resposta está completa e adiciona conclusão se necessário
@@ -231,15 +255,23 @@ export const callOllamaAPI = async (messages: Message[]): Promise<string> => {
   const lastUserMessage = messages.filter(m => m.role === 'user').pop();
   const userInput = lastUserMessage?.content || '';
   
+  // Verificar se a pergunta está fora do contexto financeiro
+  if (isOutOfFinanceContext(userInput)) {
+    return 'Posso ajudar apenas com investimentos brasileiros. Qual sua dúvida sobre CDB, Tesouro, ações, FIIs ou ETFs?';
+  }
+  
   // Verificar se há template específico para o produto
   const productTemplate = getProductTemplate(userInput);
   
   // System prompt otimizado com template específico se disponível
   const systemPrompt = productTemplate 
     ? `${productTemplate}\n\nPergunta: ${userInput}\nResposta completa (termine sempre com frase completa):`
-    : `Você é o assistente do Operum. Responda sobre investimentos brasileiros de forma clara e natural.
+    : `Você é o assistente do Operum, especializado EXCLUSIVAMENTE em investimentos brasileiros.
 
-IMPORTANTE: SEMPRE complete sua resposta com uma frase final. Nunca corte no meio.
+REGRAS OBRIGATÓRIAS:
+- Responda APENAS sobre investimentos, finanças e produtos financeiros brasileiros
+- Se a pergunta NÃO for sobre investimentos/finanças, responda: "Posso ajudar apenas com investimentos brasileiros. Qual sua dúvida sobre CDB, Tesouro, ações, FIIs ou ETFs?"
+- SEMPRE complete sua resposta com uma frase final. Nunca corte no meio
 
 Pergunta: ${userInput}
 Resposta completa:`;
@@ -308,6 +340,11 @@ const getMockResponse = async (userInput: string): Promise<string> => {
   await new Promise<void>((resolve) => setTimeout(() => resolve(), 800));
   
   const input = userInput.toLowerCase();
+  
+  // Verificar se a pergunta está fora do contexto financeiro
+  if (isOutOfFinanceContext(userInput)) {
+    return 'Posso ajudar apenas com investimentos brasileiros. Qual sua dúvida sobre CDB, Tesouro, ações, FIIs ou ETFs?';
+  }
   
   // Verificar se há template específico para o produto
   const productTemplate = getProductTemplate(userInput);
