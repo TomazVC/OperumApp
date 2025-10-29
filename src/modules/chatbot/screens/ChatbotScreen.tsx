@@ -153,6 +153,7 @@ const SendButton = styled.TouchableOpacity`
   ${({theme}) => theme.shadows.md}
 `;
 
+
 const ChatbotScreen: React.FC = () => {
   const navigation = useNavigation<RootStackNavigationProp>();
   const {user} = useAuth();
