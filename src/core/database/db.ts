@@ -10,9 +10,11 @@ const isWeb = Platform.OS === 'web';
 // Implementação web com localStorage
 let webUsers: any[] = [];
 let webPortfolios: any[] = [];
+let webChatMessages: any[] = [];
 let webCache: {[key: string]: {value: string; updatedAt: number}} = {};
 let nextUserId = 1;
 let nextPortfolioId = 1;
+let nextMessageId = 1;
 
 // Funções para persistência com localStorage
 const loadFromLocalStorage = () => {
@@ -20,9 +22,11 @@ const loadFromLocalStorage = () => {
     try {
       const storedUsers = localStorage.getItem('operum_webUsers');
       const storedPortfolios = localStorage.getItem('operum_webPortfolios');
+      const storedChatMessages = localStorage.getItem('operum_webChatMessages');
       const storedCache = localStorage.getItem('operum_webCache');
       const storedNextUserId = localStorage.getItem('operum_nextUserId');
       const storedNextPortfolioId = localStorage.getItem('operum_nextPortfolioId');
+      const storedNextMessageId = localStorage.getItem('operum_nextMessageId');
 
       if (storedUsers) {
         webUsers = JSON.parse(storedUsers);
@@ -30,6 +34,9 @@ const loadFromLocalStorage = () => {
       }
       if (storedPortfolios) {
         webPortfolios = JSON.parse(storedPortfolios);
+      }
+      if (storedChatMessages) {
+        webChatMessages = JSON.parse(storedChatMessages);
       }
       if (storedCache) {
         webCache = JSON.parse(storedCache);
@@ -39,6 +46,9 @@ const loadFromLocalStorage = () => {
       }
       if (storedNextPortfolioId) {
         nextPortfolioId = parseInt(storedNextPortfolioId);
+      }
+      if (storedNextMessageId) {
+        nextMessageId = parseInt(storedNextMessageId);
       }
     } catch (error) {
       console.error('Erro ao carregar do localStorage:', error);
@@ -51,9 +61,11 @@ const saveToLocalStorage = () => {
     try {
       localStorage.setItem('operum_webUsers', JSON.stringify(webUsers));
       localStorage.setItem('operum_webPortfolios', JSON.stringify(webPortfolios));
+      localStorage.setItem('operum_webChatMessages', JSON.stringify(webChatMessages));
       localStorage.setItem('operum_webCache', JSON.stringify(webCache));
       localStorage.setItem('operum_nextUserId', nextUserId.toString());
       localStorage.setItem('operum_nextPortfolioId', nextPortfolioId.toString());
+      localStorage.setItem('operum_nextMessageId', nextMessageId.toString());
       console.log('💾 Dados salvos no localStorage');
     } catch (error) {
       console.error('Erro ao salvar no localStorage:', error);
@@ -294,6 +306,18 @@ export const setupDatabase = (): void => {
         FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
       );
     `);
+
+    // chat messages for chatbot
+    database.runSync(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        timestamp TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now')),
+        FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
   } catch (error) {
     console.error('Error setting up database:', error);
     throw error;
@@ -320,6 +344,14 @@ export interface PortfolioItem {
   assetType?: string;
   amount: number;
   isDemo?: number;
+}
+
+export interface ChatMessage {
+  id: number;
+  userId: number;
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+  timestamp: string;
 }
 
 export const insertUser = (user: Omit<User, 'id' | 'createdAt'>): number => {
@@ -508,6 +540,88 @@ export const setCache = (key: string, value: string, updatedAt: number): void =>
     );
   } catch (error) {
     console.error('Error setting cache:', error);
+    throw error;
+  }
+};
+
+// Chat messages helpers
+export const insertChatMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>): number => {
+  const database = openDatabase();
+  
+  if (Platform.OS === 'web') {
+    // Implementação web com localStorage
+    const msg = {
+      id: nextMessageId++,
+      userId: message.userId,
+      role: message.role,
+      content: message.content,
+      timestamp: new Date().toISOString()
+    };
+    webChatMessages.push(msg);
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('operum_webChatMessages', JSON.stringify(webChatMessages));
+      localStorage.setItem('operum_nextMessageId', nextMessageId.toString());
+    }
+    
+    return msg.id;
+  }
+  
+  try {
+    const result = database.runSync(
+      'INSERT INTO chat_messages (userId, role, content) VALUES (?, ?, ?)',
+      [message.userId, message.role, message.content]
+    );
+    return result.lastInsertRowId;
+  } catch (error) {
+    console.error('Error inserting chat message:', error);
+    throw error;
+  }
+};
+
+export const getChatHistory = (userId: number, limit: number = 10): ChatMessage[] => {
+  const database = openDatabase();
+  
+  if (Platform.OS === 'web') {
+    // Implementação web
+    const messages = webChatMessages
+      .filter(msg => msg.userId === userId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, limit)
+      .reverse();
+    return messages;
+  }
+  
+  try {
+    const result = database.getAllSync(
+      'SELECT * FROM chat_messages WHERE userId = ? ORDER BY timestamp DESC LIMIT ?',
+      [userId, limit]
+    ) as ChatMessage[];
+    return result || [];
+  } catch (error) {
+    console.error('Error getting chat history:', error);
+    return [];
+  }
+};
+
+export const clearChatHistory = (userId: number): void => {
+  const database = openDatabase();
+  
+  if (Platform.OS === 'web') {
+    webChatMessages = webChatMessages.filter(msg => msg.userId !== userId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('operum_webChatMessages', JSON.stringify(webChatMessages));
+    }
+    return;
+  }
+  
+  try {
+    database.runSync(
+      'DELETE FROM chat_messages WHERE userId = ?',
+      [userId]
+    );
+  } catch (error) {
+    console.error('Error clearing chat history:', error);
     throw error;
   }
 };
