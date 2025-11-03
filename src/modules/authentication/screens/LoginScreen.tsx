@@ -128,7 +128,7 @@ const LoginScreen: React.FC = () => {
     try {
       await signInWithEmail(email, password);
       // Redirecionamento automático após login bem-sucedido
-      navigation.replace('Portfolio');
+      navigation.replace('Main');
     } catch (e: any) {
       console.error('Erro no login:', e);
       

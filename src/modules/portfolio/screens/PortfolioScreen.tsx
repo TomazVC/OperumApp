@@ -528,16 +528,7 @@ const PortfolioScreen: React.FC = () => {
           )}
         </StocksContainer>
 
-        {/* Botão do Assistente */}
-        <View style={{marginBottom: 24}}>
-          <Button 
-            title="Falar com o Assistente" 
-            onPress={handleChatbot}
-            variant="secondary"
-            size="large"
-            icon={<Ionicons name="chatbubble-outline" size={20} color="#8B5CF6" />}
-          />
-        </View>
+        {/* Botão do Assistente removido (já existe no topo) */}
       </ContentContainer>
 
       {/* Modal de Seleção de Ativo */}
