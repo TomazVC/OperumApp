@@ -253,7 +253,7 @@ const ChatbotScreen: React.FC = () => {
           </BackButton>
           <View style={{flex: 1}}>
             <HeaderTitle>Assistente Virtual</HeaderTitle>
-            <HeaderSubtitle>Pergunta-e-Resposta com Hugging Face</HeaderSubtitle>
+            <HeaderSubtitle>Pergunta e Resposta com Inteligência Artificial</HeaderSubtitle>
           </View>
         </HeaderContent>
       </HeaderContainer>

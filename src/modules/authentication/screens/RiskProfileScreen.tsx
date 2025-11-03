@@ -154,12 +154,12 @@ const RiskProfileScreen: React.FC = () => {
         
         console.log('✅ Perfil de risco salvo:', { riskProfile, objectives });
         
-        // Navegar para Portfolio
-        navigation.replace('Portfolio');
+        // Navegar para Main (abas)
+        navigation.replace('Main');
       } catch (error) {
         console.error('Erro ao salvar perfil:', error);
-        // Mesmo com erro, navegar para Portfolio
-        navigation.replace('Portfolio');
+        // Mesmo com erro, navegar para Main (abas)
+        navigation.replace('Main');
       }
     } else {
       // Animar transição para próxima pergunta

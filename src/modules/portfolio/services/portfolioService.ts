@@ -1,5 +1,5 @@
 import {PortfolioItem} from '../../../shared/types';
-import {listPortfolioByUserId, insertPortfolioItem} from '../../../core/database/db';
+import {listPortfolioByUserId, insertPortfolioItem, updatePortfolioItem as updatePortfolioItemDb, deletePortfolioItem} from '../../../core/database/db';
 
 export const portfolioService = {
   getUserPortfolio(userId: number): PortfolioItem[] {
@@ -16,6 +16,24 @@ export const portfolioService = {
       return insertPortfolioItem(item);
     } catch (error) {
       console.error('Erro ao adicionar item ao portfólio:', error);
+      throw error;
+    }
+  },
+
+  updatePortfolioItem(id: number, item: Partial<Omit<PortfolioItem, 'id' | 'userId'>>): void {
+    try {
+      updatePortfolioItemDb(id, item);
+    } catch (error) {
+      console.error('Erro ao atualizar item do portfólio:', error);
+      throw error;
+    }
+  },
+
+  removePortfolioItem(id: number): void {
+    try {
+      deletePortfolioItem(id);
+    } catch (error) {
+      console.error('Erro ao remover item do portfólio:', error);
       throw error;
     }
   },

@@ -5,16 +5,21 @@ import {useNavigation} from '@react-navigation/native';
 import {Ionicons} from '@expo/vector-icons';
 import {RootStackNavigationProp} from '../../../core/navigation/types';
 import {useAuth} from '../../../shared/hooks/useAuth';
-import {PortfolioItem, StockPosition, PortfolioMetrics} from '../../../shared/types';
+import {PortfolioItem, StockPosition, PortfolioMetrics, RiskProfile, RecommendedPortfolio} from '../../../shared/types';
 import {portfolioService} from '../services/portfolioService';
+import {portfolioSimulationService} from '../services/portfolioSimulationService';
 import {useMarketData} from '../../../shared/hooks/useMarketData';
 import PortfolioDashboard from '../components/PortfolioDashboard';
+import AIRecommendations from '../components/AIRecommendations';
+import AssetSelector from '../components/AssetSelector';
 import MarketIndicators from '../components/MarketIndicators';
 import StockCard from '../components/StockCard';
 import PerformanceChart from '../components/PerformanceChart';
 import Button from '../../../shared/components/Button';
 import Container from '../../../shared/components/Container';
 import IconButton from '../../../shared/components/IconButton';
+import Card from '../../../shared/components/Card';
+import {formatCurrency} from '../../../shared/utils/formatters';
 
 const ScreenContainer = styled.View`
   flex: 1;
@@ -112,6 +117,46 @@ const EmptyStateSubtext = styled.Text`
   font-family: ${({theme}) => theme.typography.body.fontFamily};
 `;
 
+const SimulatedAssetCard = styled(Card)`
+  margin-bottom: ${({theme}) => theme.spacing.sm}px;
+  padding: ${({theme}) => theme.spacing.md}px;
+`;
+
+const SimulatedAssetHeader = styled.View`
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: ${({theme}) => theme.spacing.xs}px;
+`;
+
+const SimulatedAssetName = styled.Text`
+  color: ${({theme}) => theme.colors.textDark};
+  font-size: 16px;
+  font-weight: 600;
+  flex: 1;
+  font-family: ${({theme}) => theme.typography.h3.fontFamily};
+`;
+
+const SimulatedAssetValue = styled.Text`
+  color: ${({theme}) => theme.colors.primary};
+  font-size: 16px;
+  font-weight: 700;
+  font-family: ${({theme}) => theme.typography.h3.fontFamily};
+`;
+
+const SimulatedAssetDetails = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-top: ${({theme}) => theme.spacing.xs}px;
+  gap: 12px;
+`;
+
+const SimulatedAssetActions = styled.View`
+  flex-direction: row;
+  margin-top: ${({theme}) => theme.spacing.sm}px;
+  gap: ${({theme}) => theme.spacing.sm}px;
+`;
+
 const PortfolioScreen: React.FC = () => {
   const navigation = useNavigation<RootStackNavigationProp>();
   const {user, signOut} = useAuth();
@@ -120,6 +165,7 @@ const PortfolioScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [chartPeriod, setChartPeriod] = useState<'1D' | '1W' | '1M' | '3M' | '1Y'>('1M');
+  const [showAssetSelector, setShowAssetSelector] = useState(false);
 
   // Hook para dados de mercado
   const {
@@ -222,7 +268,62 @@ const PortfolioScreen: React.FC = () => {
   };
 
   const handleAddInvestment = () => {
-    Alert.alert('Em breve', 'Funcionalidade de adicionar investimentos será implementada');
+    setShowAssetSelector(true);
+  };
+
+  const handleOpenSimulationHistory = () => {
+    navigation.navigate('SimulationHistory');
+  };
+
+  const handleAssetSelect = (assetName: string, quantity: number, unitPrice: number) => {
+    if (!user) return;
+    
+    try {
+      portfolioSimulationService.addAssetToSimulation(user.id, assetName, quantity, unitPrice);
+      loadPortfolio();
+      Alert.alert('Sucesso', 'Ativo adicionado à carteira simulada!');
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Não foi possível adicionar o ativo');
+    }
+  };
+
+  const handleApplyRecommendation = (recommendedPortfolio: RecommendedPortfolio) => {
+    Alert.alert(
+      'Aplicar Recomendação',
+      'Esta ação irá criar uma carteira simulada com base na recomendação. Deseja continuar?',
+      [
+        {text: 'Cancelar', style: 'cancel'},
+        {
+          text: 'Aplicar',
+          onPress: () => {
+            // Por enquanto, apenas mostra mensagem
+            Alert.alert('Em breve', 'A aplicação automática da recomendação será implementada em breve');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRemoveSimulatedAsset = (itemId: number) => {
+    Alert.alert(
+      'Remover Ativo',
+      'Tem certeza que deseja remover este ativo da carteira simulada?',
+      [
+        {text: 'Cancelar', style: 'cancel'},
+        {
+          text: 'Remover',
+          style: 'destructive',
+          onPress: () => {
+            try {
+              portfolioSimulationService.removeSimulatedAsset(itemId);
+              loadPortfolio();
+            } catch (error: any) {
+              Alert.alert('Erro', error.message || 'Não foi possível remover o ativo');
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Calcular métricas do portfólio
@@ -247,6 +348,15 @@ const PortfolioScreen: React.FC = () => {
   const chartData = [100, 102, 98, 105, 110, 108, 115, 112, 118, 120, 125, 122];
 
   const totalValue = portfolioItems.reduce((sum, item) => sum + item.amount, 0);
+
+  // Calcular métricas de simulação
+  const simulatedItems = portfolioItems.filter(item => item.isDemo === 1);
+  const simulationMetrics = simulatedItems.length > 0
+    ? portfolioSimulationService.calculatePortfolioMetrics(user?.id || 0, portfolioItems)
+    : undefined;
+
+  // Obter perfil de risco do usuário
+  const riskProfile = user?.riskProfile as RiskProfile | undefined;
 
   return (
     <ScreenContainer>
@@ -296,11 +406,88 @@ const PortfolioScreen: React.FC = () => {
         {/* Dashboard de Métricas */}
         <PortfolioDashboard
           metrics={portfolioMetrics}
+          simulationMetrics={simulationMetrics}
           loading={isLoading}
           error={null}
+          riskProfile={riskProfile}
           onRefresh={handleRefresh}
           onAddInvestment={handleAddInvestment}
         />
+
+        {/* Acesso ao Histórico de Simulações */}
+        <View style={{marginBottom: 16}}>
+          <Button
+            title="Histórico de Simulações"
+            onPress={handleOpenSimulationHistory}
+            variant="secondary"
+            size="large"
+            icon={<Ionicons name="time-outline" size={20} color="#8B5CF6" />}
+          />
+        </View>
+
+        {/* Sugestões da IA */}
+        <AIRecommendations
+          riskProfile={riskProfile}
+          onApplyRecommendation={handleApplyRecommendation}
+        />
+
+        {/* Carteira Simulada */}
+        {simulatedItems.length > 0 && (
+          <StocksContainer>
+            <SectionTitle>Carteira Simulada</SectionTitle>
+            {simulatedItems.map((item) => {
+              const asset = portfolioSimulationService.getAssetByName(item.assetName);
+              const itemValue = item.quantity && item.unitPrice
+                ? item.quantity * item.unitPrice
+                : item.amount;
+
+              return (
+                <SimulatedAssetCard key={item.id} variant="elevated">
+                  <SimulatedAssetHeader>
+                    <SimulatedAssetName>{item.assetName}</SimulatedAssetName>
+                    <SimulatedAssetValue>{formatCurrency(itemValue)}</SimulatedAssetValue>
+                  </SimulatedAssetHeader>
+                  {asset && (
+                    <SimulatedAssetDetails>
+                      <Text style={{fontSize: 12, color: '#6B7280'}}>
+                        {asset.category} • Risco: {asset.risk} • Liquidez: {asset.liquidity}
+                      </Text>
+                    </SimulatedAssetDetails>
+                  )}
+                  {(item.quantity || item.unitPrice) && (
+                    <SimulatedAssetDetails>
+                      {item.quantity && (
+                        <Text style={{fontSize: 12, color: '#6B7280'}}>
+                          Quantidade: {item.quantity.toFixed(2)}
+                        </Text>
+                      )}
+                      {item.unitPrice && (
+                        <Text style={{fontSize: 12, color: '#6B7280'}}>
+                          Preço Unitário: {formatCurrency(item.unitPrice)}
+                        </Text>
+                      )}
+                      {item.expectedReturn && (
+                        <Text style={{fontSize: 12, color: '#10B981'}}>
+                          Rentabilidade: {item.expectedReturn.toFixed(2)}%
+                        </Text>
+                      )}
+                    </SimulatedAssetDetails>
+                  )}
+                  <SimulatedAssetActions>
+                    <Button
+                      title="Remover"
+                      onPress={() => handleRemoveSimulatedAsset(item.id)}
+                      variant="secondary"
+                      size="small"
+                      icon={<Ionicons name="trash-outline" size={14} color="#EF4444" />}
+                      style={{flex: 1}}
+                    />
+                  </SimulatedAssetActions>
+                </SimulatedAssetCard>
+              );
+            })}
+          </StocksContainer>
+        )}
 
         {/* Indicadores de Mercado */}
         <MarketIndicators
@@ -356,17 +543,15 @@ const PortfolioScreen: React.FC = () => {
           )}
         </StocksContainer>
 
-        {/* Botão do Assistente */}
-        <View style={{marginBottom: 24}}>
-          <Button 
-            title="Falar com o Assistente" 
-            onPress={handleChatbot}
-            variant="secondary"
-            size="large"
-            icon={<Ionicons name="chatbubble-outline" size={20} color="#8B5CF6" />}
-          />
-        </View>
+        {/* Botão do Assistente removido (já existe no topo) */}
       </ContentContainer>
+
+      {/* Modal de Seleção de Ativo */}
+      <AssetSelector
+        visible={showAssetSelector}
+        onClose={() => setShowAssetSelector(false)}
+        onSelect={handleAssetSelect}
+      />
     </ScreenContainer>
   );
 };
