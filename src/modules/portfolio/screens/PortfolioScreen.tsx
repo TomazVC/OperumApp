@@ -271,6 +271,10 @@ const PortfolioScreen: React.FC = () => {
     setShowAssetSelector(true);
   };
 
+  const handleOpenSimulationHistory = () => {
+    navigation.navigate('SimulationHistory');
+  };
+
   const handleAssetSelect = (assetName: string, quantity: number, unitPrice: number) => {
     if (!user) return;
     
@@ -409,6 +413,17 @@ const PortfolioScreen: React.FC = () => {
           onRefresh={handleRefresh}
           onAddInvestment={handleAddInvestment}
         />
+
+        {/* Acesso ao Histórico de Simulações */}
+        <View style={{marginBottom: 16}}>
+          <Button
+            title="Histórico de Simulações"
+            onPress={handleOpenSimulationHistory}
+            variant="secondary"
+            size="large"
+            icon={<Ionicons name="time-outline" size={20} color="#8B5CF6" />}
+          />
+        </View>
 
         {/* Sugestões da IA */}
         <AIRecommendations

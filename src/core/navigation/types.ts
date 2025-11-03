@@ -4,6 +4,7 @@ export type RootStackParamList = {
   Register: undefined;
   RiskProfile: { userId: number };
   Main: undefined;
+  SimulationHistory: undefined;
   Chatbot: undefined;
 };
 
