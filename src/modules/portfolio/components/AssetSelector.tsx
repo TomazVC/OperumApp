@@ -32,7 +32,7 @@ const ModalContent = styled.View`
   background-color: ${({theme}) => theme.colors.surface};
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
-  max-height: 80%;
+  height: 85%;
   padding: ${({theme}) => theme.spacing.lg}px;
 `;
 
@@ -102,7 +102,7 @@ const CategoryButtonText = styled.Text<{active: boolean}>`
 `;
 
 const ContentScroll = styled.ScrollView`
-  max-height: 300px;
+  flex: 1;
 `;
 
 const ChipRow = styled.View`
