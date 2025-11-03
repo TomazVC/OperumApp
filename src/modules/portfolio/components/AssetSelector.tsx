@@ -70,8 +70,17 @@ const SearchInput = styled.TextInput`
 `;
 
 const CategoryFilter = styled.ScrollView`
-  margin-top: 4px;
-  margin-bottom: ${({theme}) => theme.spacing.md}px;
+  margin-top: 0px;
+`;
+
+const CategoryBarContainer = styled.View`
+  height: 48px;
+  justify-content: center;
+  background-color: ${({theme}) => theme.colors.surface};
+`;
+
+const FiltersContainer = styled.View`
+  margin-top: 8px;
 `;
 
 const CategoryButton = styled.TouchableOpacity<{active: boolean}>`
@@ -92,7 +101,7 @@ const CategoryButtonText = styled.Text<{active: boolean}>`
   font-weight: 500;
 `;
 
-const AssetsList = styled.ScrollView`
+const ContentScroll = styled.ScrollView`
   max-height: 300px;
 `;
 
@@ -353,109 +362,116 @@ const AssetSelector: React.FC<AssetSelectorProps> = ({
 
           {!selectedAsset ? (
             <>
-              <SearchInput
-                placeholder="Buscar ativo..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholderTextColor="#9CA3AF"
-              />
+              <ContentScroll stickyHeaderIndices={[1]}>
+                <SearchInput
+                  placeholder="Buscar ativo..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholderTextColor="#9CA3AF"
+                />
 
-              <CategoryFilter horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal: 6}}>
-                <CategoryButton
-                  active={selectedCategory === null}
-                  onPress={() => setSelectedCategory(null)}>
-                  <CategoryButtonText active={selectedCategory === null}>
-                    Todos
-                  </CategoryButtonText>
-                </CategoryButton>
-                {categories.map(cat => (
-                  <CategoryButton
-                    key={cat}
-                    active={selectedCategory === cat}
-                    onPress={() => setSelectedCategory(cat)}>
-                    <CategoryButtonText active={selectedCategory === cat}>
-                      {cat}
-                    </CategoryButtonText>
-                  </CategoryButton>
-                ))}
-              </CategoryFilter>
+                {/* Sticky category bar */}
+                <CategoryBarContainer>
+                  <CategoryFilter horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal: 6}}>
+                    <CategoryButton
+                      active={selectedCategory === null}
+                      onPress={() => setSelectedCategory(null)}>
+                      <CategoryButtonText active={selectedCategory === null}>
+                        Todos
+                      </CategoryButtonText>
+                    </CategoryButton>
+                    {categories.map(cat => (
+                      <CategoryButton
+                        key={cat}
+                        active={selectedCategory === cat}
+                        onPress={() => setSelectedCategory(cat)}>
+                        <CategoryButtonText active={selectedCategory === cat}>
+                          {cat}
+                        </CategoryButtonText>
+                      </CategoryButton>
+                    ))}
+                  </CategoryFilter>
+                </CategoryBarContainer>
 
-              {/* Extra filters: Risk, Liquidity, Sort */}
-              <ChipRow>
-                {(['Baixo','Médio','Alto'] as const).map(val => (
-                  <Chip key={`risk-${val}`} active={riskFilter === val} onPress={() => setRiskFilter(riskFilter === val ? null : val)}>
-                    <Ionicons name="shield-outline" size={12} color={riskFilter === val ? '#FFFFFF' : '#374151'} />
-                    <Text style={{width: 4}} />
-                    <ChipText active={riskFilter === val}>Risco: {val}</ChipText>
-                  </Chip>
-                ))}
-              </ChipRow>
-              <ChipRow>
-                {(['Alta','Média','Baixa'] as const).map(val => (
-                  <Chip key={`liq-${val}`} active={liquidityFilter === val} onPress={() => setLiquidityFilter(liquidityFilter === val ? null : val)}>
-                    <Ionicons name="cash-outline" size={12} color={liquidityFilter === val ? '#FFFFFF' : '#374151'} />
-                    <Text style={{width: 4}} />
-                    <ChipText active={liquidityFilter === val}>Liquidez: {val}</ChipText>
-                  </Chip>
-                ))}
-              </ChipRow>
-              <ChipRow>
-                {(['Rentabilidade','Risco','Liquidez'] as const).map(val => (
-                  <Chip key={`sort-${val}`} active={sortKey === val} onPress={() => {
-                    if (sortKey === val) { setSortAsc(!sortAsc); } else { setSortKey(val); setSortAsc(false); }
-                  }}>
-                    <Ionicons name={val === 'Rentabilidade' ? 'trending-up-outline' : val === 'Risco' ? 'warning-outline' : 'swap-vertical-outline'} size={12} color={sortKey === val ? '#FFFFFF' : '#374151'} />
-                    <Text style={{width: 4}} />
-                    <ChipText active={sortKey === val}>
-                      Ordenar: {val} {sortKey === val ? (sortAsc ? '⬆️' : '⬇️') : ''}
-                    </ChipText>
-                  </Chip>
-                ))}
+                {/* Extra filters: Risk, Liquidity, Sort */}
+                <FiltersContainer>
+                  <ChipRow>
+                    {(['Baixo','Médio','Alto'] as const).map(val => (
+                      <Chip key={`risk-${val}`} active={riskFilter === val} onPress={() => setRiskFilter(riskFilter === val ? null : val)}>
+                        <Ionicons name="shield-outline" size={12} color={riskFilter === val ? '#FFFFFF' : '#374151'} />
+                        <Text style={{width: 4}} />
+                        <ChipText active={riskFilter === val}>Risco: {val}</ChipText>
+                      </Chip>
+                    ))}
+                  </ChipRow>
+                  <ChipRow>
+                    {(['Alta','Média','Baixa'] as const).map(val => (
+                      <Chip key={`liq-${val}`} active={liquidityFilter === val} onPress={() => setLiquidityFilter(liquidityFilter === val ? null : val)}>
+                        <Ionicons name="cash-outline" size={12} color={liquidityFilter === val ? '#FFFFFF' : '#374151'} />
+                        <Text style={{width: 4}} />
+                        <ChipText active={liquidityFilter === val}>Liquidez: {val}</ChipText>
+                      </Chip>
+                    ))}
+                  </ChipRow>
+                  <ChipRow>
+                    {(['Rentabilidade','Risco','Liquidez'] as const).map(val => (
+                      <Chip key={`sort-${val}`} active={sortKey === val} onPress={() => {
+                        if (sortKey === val) { setSortAsc(!sortAsc); } else { setSortKey(val); setSortAsc(false); }
+                      }}>
+                        <Ionicons name={val === 'Rentabilidade' ? 'trending-up-outline' : val === 'Risco' ? 'warning-outline' : 'swap-vertical-outline'} size={12} color={sortKey === val ? '#FFFFFF' : '#374151'} />
+                        <Text style={{width: 4}} />
+                        <ChipText active={sortKey === val}>
+                          Ordenar: {val} {sortKey === val ? (sortAsc ? '⬆️' : '⬇️') : ''}
+                        </ChipText>
+                      </Chip>
+                    ))}
 
-                {hasActiveFilters && (
-                  <ClearChip onPress={() => { setRiskFilter(null); setLiquidityFilter(null); setSortKey(null); setSortAsc(false); }}>
-                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                      <Ionicons name="close-circle-outline" size={14} color="#6B7280" />
-                      <Text style={{width: 4}} />
-                      <ClearChipText>Limpar filtros</ClearChipText>
-                    </View>
-                  </ClearChip>
-                )}
-              </ChipRow>
+                    {hasActiveFilters && (
+                      <ClearChip onPress={() => { setRiskFilter(null); setLiquidityFilter(null); setSortKey(null); setSortAsc(false); }}>
+                        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                          <Ionicons name="close-circle-outline" size={14} color="#6B7280" />
+                          <Text style={{width: 4}} />
+                          <ClearChipText>Limpar filtros</ClearChipText>
+                        </View>
+                      </ClearChip>
+                    )}
+                  </ChipRow>
+                </FiltersContainer>
 
-              <AssetsList>
-                {filteredAssets.map((asset, index) => (
-                  <AssetItem
-                    key={index}
-                    variant="elevated"
-                    onPress={() => handleSelectAsset(asset)}>
-                    <AssetHeader>
-                      <AssetName>{asset.name}</AssetName>
-                      <AssetBadge color={categoryColors[asset.category] || '#8B5CF6'}>
-                        <AssetBadgeText color={categoryColors[asset.category] || '#8B5CF6'}>
-                          {asset.category}
-                        </AssetBadgeText>
-                      </AssetBadge>
-                    </AssetHeader>
-                    <AssetDetails>
-                      <DetailItem>
-                        <Ionicons name="shield-outline" size={12} color="#6B7280" />
-                        <DetailText>Risco: {asset.risk}</DetailText>
-                      </DetailItem>
-                      <DetailItem>
-                        <Ionicons name="cash-outline" size={12} color="#6B7280" />
-                        <DetailText>Liquidez: {asset.liquidity}</DetailText>
-                      </DetailItem>
-                      <DetailItem>
-                        <Ionicons name="trending-up-outline" size={12} color="#10B981" />
-                        <DetailText>
-                          Rent.: {formatPercentage(asset.expectedReturn)}
-                        </DetailText>
-                      </DetailItem>
-                    </AssetDetails>
-                  </AssetItem>
-                ))}
-              </AssetsList>
+                <View style={{marginTop: 8}}>
+                  {filteredAssets.map((asset, index) => (
+                    <AssetItem
+                      key={index}
+                      variant="elevated"
+                      onPress={() => handleSelectAsset(asset)}>
+                      <AssetHeader>
+                        <AssetName>{asset.name}</AssetName>
+                        <AssetBadge color={categoryColors[asset.category] || '#8B5CF6'}>
+                          <AssetBadgeText color={categoryColors[asset.category] || '#8B5CF6'}>
+                            {asset.category}
+                          </AssetBadgeText>
+                        </AssetBadge>
+                      </AssetHeader>
+                      <AssetDetails>
+                        <DetailItem>
+                          <Ionicons name="shield-outline" size={12} color="#6B7280" />
+                          <DetailText>Risco: {asset.risk}</DetailText>
+                        </DetailItem>
+                        <DetailItem>
+                          <Ionicons name="cash-outline" size={12} color="#6B7280" />
+                          <DetailText>Liquidez: {asset.liquidity}</DetailText>
+                        </DetailItem>
+                        <DetailItem>
+                          <Ionicons name="trending-up-outline" size={12} color="#10B981" />
+                          <DetailText>
+                            Rent.: {formatPercentage(asset.expectedReturn)}
+                          </DetailText>
+                        </DetailItem>
+                      </AssetDetails>
+                    </AssetItem>
+                  ))}
+                </View>
+              </ContentScroll>
             </>
           ) : (
             <ScrollView>
