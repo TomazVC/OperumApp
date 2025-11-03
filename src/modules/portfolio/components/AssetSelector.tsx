@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import {
   View,
   Text,
@@ -70,6 +70,7 @@ const SearchInput = styled.TextInput`
 `;
 
 const CategoryFilter = styled.ScrollView`
+  margin-top: 4px;
   margin-bottom: ${({theme}) => theme.spacing.md}px;
 `;
 
@@ -93,6 +94,41 @@ const CategoryButtonText = styled.Text<{active: boolean}>`
 
 const AssetsList = styled.ScrollView`
   max-height: 300px;
+`;
+
+const ChipRow = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+`;
+
+const Chip = styled.TouchableOpacity<{active: boolean}>`
+  padding: 6px 10px;
+  border-radius: 12px;
+  background-color: ${({active, theme}) => (active ? theme.colors.primary : theme.colors.background)};
+  border-width: 1px;
+  border-color: ${({active, theme}) => (active ? theme.colors.primary : theme.colors.border)};
+`;
+
+const ChipText = styled.Text<{active: boolean}>`
+  color: ${({active, theme}) => (active ? '#FFFFFF' : theme.colors.textDark)};
+  font-size: 12px;
+  font-weight: 600;
+`;
+
+const ClearChip = styled.TouchableOpacity`
+  padding: 6px 10px;
+  border-radius: 12px;
+  background-color: transparent;
+  border-width: 1px;
+  border-color: ${({theme}) => theme.colors.border};
+`;
+
+const ClearChipText = styled.Text`
+  color: ${({theme}) => theme.colors.textSecondary};
+  font-size: 12px;
+  font-weight: 600;
 `;
 
 const AssetItem = styled(Card)`
@@ -217,13 +253,46 @@ const AssetSelector: React.FC<AssetSelectorProps> = ({
   const [quantity, setQuantity] = useState('');
   const [unitPrice, setUnitPrice] = useState('');
 
+  // New filters
+  const [riskFilter, setRiskFilter] = useState<'Baixo' | 'Médio' | 'Alto' | null>(null);
+  const [liquidityFilter, setLiquidityFilter] = useState<'Alta' | 'Média' | 'Baixa' | null>(null);
+  const [sortKey, setSortKey] = useState<'Rentabilidade' | 'Risco' | 'Liquidez' | null>(null);
+  const [sortAsc, setSortAsc] = useState<boolean>(false);
+  const hasActiveFilters = !!(riskFilter || liquidityFilter || sortKey);
+
   const allAssets = portfolioSimulationService.getAllAssets();
 
-  const filteredAssets = allAssets.filter(asset => {
-    const matchesSearch = asset.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || asset.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredAssets = useMemo(() => {
+    const base = allAssets.filter(asset => {
+      const matchesSearch = asset.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = !selectedCategory || asset.category === selectedCategory;
+      const matchesRisk = !riskFilter || String(asset.risk).toLowerCase() === riskFilter.toLowerCase();
+      const matchesLiquidity = !liquidityFilter || String(asset.liquidity).toLowerCase() === liquidityFilter.toLowerCase();
+      return matchesSearch && matchesCategory && matchesRisk && matchesLiquidity;
+    });
+
+    if (!sortKey) return base;
+
+    const keyToValue = (a: RecommendedAsset): number => {
+      switch (sortKey) {
+        case 'Rentabilidade':
+          return Number(a.expectedReturn ?? 0);
+        case 'Risco': {
+          const map: Record<string, number> = { baixo: 1, médio: 2, alto: 3 };
+          return map[String(a.risk).toLowerCase()] ?? 0;
+        }
+        case 'Liquidez': {
+          const map: Record<string, number> = { baixa: 1, média: 2, alta: 3 };
+          return map[String(a.liquidity).toLowerCase()] ?? 0;
+        }
+        default:
+          return 0;
+      }
+    };
+
+    const sorted = [...base].sort((a, b) => keyToValue(a) - keyToValue(b));
+    return sortAsc ? sorted : sorted.reverse();
+  }, [allAssets, searchQuery, selectedCategory, riskFilter, liquidityFilter, sortKey, sortAsc]);
 
   const handleSelectAsset = (asset: RecommendedAsset) => {
     setSelectedAsset(asset);
@@ -291,7 +360,7 @@ const AssetSelector: React.FC<AssetSelectorProps> = ({
                 placeholderTextColor="#9CA3AF"
               />
 
-              <CategoryFilter horizontal showsHorizontalScrollIndicator={false}>
+              <CategoryFilter horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal: 6}}>
                 <CategoryButton
                   active={selectedCategory === null}
                   onPress={() => setSelectedCategory(null)}>
@@ -310,6 +379,49 @@ const AssetSelector: React.FC<AssetSelectorProps> = ({
                   </CategoryButton>
                 ))}
               </CategoryFilter>
+
+              {/* Extra filters: Risk, Liquidity, Sort */}
+              <ChipRow>
+                {(['Baixo','Médio','Alto'] as const).map(val => (
+                  <Chip key={`risk-${val}`} active={riskFilter === val} onPress={() => setRiskFilter(riskFilter === val ? null : val)}>
+                    <Ionicons name="shield-outline" size={12} color={riskFilter === val ? '#FFFFFF' : '#374151'} />
+                    <Text style={{width: 4}} />
+                    <ChipText active={riskFilter === val}>Risco: {val}</ChipText>
+                  </Chip>
+                ))}
+              </ChipRow>
+              <ChipRow>
+                {(['Alta','Média','Baixa'] as const).map(val => (
+                  <Chip key={`liq-${val}`} active={liquidityFilter === val} onPress={() => setLiquidityFilter(liquidityFilter === val ? null : val)}>
+                    <Ionicons name="cash-outline" size={12} color={liquidityFilter === val ? '#FFFFFF' : '#374151'} />
+                    <Text style={{width: 4}} />
+                    <ChipText active={liquidityFilter === val}>Liquidez: {val}</ChipText>
+                  </Chip>
+                ))}
+              </ChipRow>
+              <ChipRow>
+                {(['Rentabilidade','Risco','Liquidez'] as const).map(val => (
+                  <Chip key={`sort-${val}`} active={sortKey === val} onPress={() => {
+                    if (sortKey === val) { setSortAsc(!sortAsc); } else { setSortKey(val); setSortAsc(false); }
+                  }}>
+                    <Ionicons name={val === 'Rentabilidade' ? 'trending-up-outline' : val === 'Risco' ? 'warning-outline' : 'swap-vertical-outline'} size={12} color={sortKey === val ? '#FFFFFF' : '#374151'} />
+                    <Text style={{width: 4}} />
+                    <ChipText active={sortKey === val}>
+                      Ordenar: {val} {sortKey === val ? (sortAsc ? '⬆️' : '⬇️') : ''}
+                    </ChipText>
+                  </Chip>
+                ))}
+
+                {hasActiveFilters && (
+                  <ClearChip onPress={() => { setRiskFilter(null); setLiquidityFilter(null); setSortKey(null); setSortAsc(false); }}>
+                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                      <Ionicons name="close-circle-outline" size={14} color="#6B7280" />
+                      <Text style={{width: 4}} />
+                      <ClearChipText>Limpar filtros</ClearChipText>
+                    </View>
+                  </ClearChip>
+                )}
+              </ChipRow>
 
               <AssetsList>
                 {filteredAssets.map((asset, index) => (
