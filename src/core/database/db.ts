@@ -281,10 +281,30 @@ export const setupDatabase = (): void => {
         assetType TEXT,
         amount REAL,
         isDemo INTEGER DEFAULT 0,
+        quantity REAL,
+        unitPrice REAL,
+        expectedReturn REAL,
         createdAt TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now')),
         FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
       );
     `);
+
+    // Adicionar novos campos se a tabela já existir (migration)
+    try {
+      database.runSync(`ALTER TABLE portfolios ADD COLUMN quantity REAL;`);
+    } catch (e) {
+      // Coluna já existe, ignorar
+    }
+    try {
+      database.runSync(`ALTER TABLE portfolios ADD COLUMN unitPrice REAL;`);
+    } catch (e) {
+      // Coluna já existe, ignorar
+    }
+    try {
+      database.runSync(`ALTER TABLE portfolios ADD COLUMN expectedReturn REAL;`);
+    } catch (e) {
+      // Coluna já existe, ignorar
+    }
 
     // simple persistent cache for quotes/macro values
     database.runSync(`
@@ -344,6 +364,9 @@ export interface PortfolioItem {
   assetType?: string;
   amount: number;
   isDemo?: number;
+  quantity?: number;
+  unitPrice?: number;
+  expectedReturn?: number;
 }
 
 export interface ChatMessage {
@@ -504,12 +527,83 @@ export const insertPortfolioItem = (item: Omit<PortfolioItem, 'id'>): number => 
   
   try {
     const result = database.runSync(
-      'INSERT INTO portfolios (userId, assetName, assetType, amount, isDemo) VALUES (?, ?, ?, ?, ?)',
-      [item.userId, item.assetName, item.assetType || null, item.amount, item.isDemo ?? 0]
+      'INSERT INTO portfolios (userId, assetName, assetType, amount, isDemo, quantity, unitPrice, expectedReturn) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        item.userId,
+        item.assetName,
+        item.assetType || null,
+        item.amount,
+        item.isDemo ?? 0,
+        item.quantity || null,
+        item.unitPrice || null,
+        item.expectedReturn || null,
+      ]
     );
     return result.lastInsertRowId;
   } catch (error) {
     console.error('Error inserting portfolio item:', error);
+    throw error;
+  }
+};
+
+export const updatePortfolioItem = (id: number, item: Partial<Omit<PortfolioItem, 'id' | 'userId'>>): void => {
+  const database = openDatabase();
+  
+  try {
+    const fields: string[] = [];
+    const values: any[] = [];
+    
+    if (item.assetName !== undefined) {
+      fields.push('assetName = ?');
+      values.push(item.assetName);
+    }
+    if (item.assetType !== undefined) {
+      fields.push('assetType = ?');
+      values.push(item.assetType);
+    }
+    if (item.amount !== undefined) {
+      fields.push('amount = ?');
+      values.push(item.amount);
+    }
+    if (item.isDemo !== undefined) {
+      fields.push('isDemo = ?');
+      values.push(item.isDemo);
+    }
+    if (item.quantity !== undefined) {
+      fields.push('quantity = ?');
+      values.push(item.quantity);
+    }
+    if (item.unitPrice !== undefined) {
+      fields.push('unitPrice = ?');
+      values.push(item.unitPrice);
+    }
+    if (item.expectedReturn !== undefined) {
+      fields.push('expectedReturn = ?');
+      values.push(item.expectedReturn);
+    }
+    
+    if (fields.length === 0) {
+      return; // Nada para atualizar
+    }
+    
+    values.push(id);
+    database.runSync(
+      `UPDATE portfolios SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+  } catch (error) {
+    console.error('Error updating portfolio item:', error);
+    throw error;
+  }
+};
+
+export const deletePortfolioItem = (id: number): void => {
+  const database = openDatabase();
+  
+  try {
+    database.runSync('DELETE FROM portfolios WHERE id = ?', [id]);
+  } catch (error) {
+    console.error('Error deleting portfolio item:', error);
     throw error;
   }
 };

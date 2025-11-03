@@ -2,15 +2,18 @@ import React from 'react';
 import {View, Text, TouchableOpacity, RefreshControl, ScrollView} from 'react-native';
 import styled from 'styled-components/native';
 import {Ionicons} from '@expo/vector-icons';
-import {PortfolioMetrics} from '../../../shared/types';
+import {PortfolioMetrics, RiskProfile, PortfolioSimulationMetrics} from '../../../shared/types';
 import {formatCurrency, formatPercentage} from '../../../shared/utils/formatters';
 import Card from '../../../shared/components/Card';
 import Button from '../../../shared/components/Button';
+import {getRiskProfileDescription} from '../../authentication/services/riskProfileService';
 
 interface PortfolioDashboardProps {
   metrics: PortfolioMetrics;
+  simulationMetrics?: PortfolioSimulationMetrics;
   loading: boolean;
   error: string | null;
+  riskProfile?: RiskProfile;
   onRefresh: () => void;
   onAddInvestment: () => void;
 }
@@ -130,10 +133,99 @@ const RetryButton = styled(Button)`
   padding-vertical: ${({theme}) => theme.spacing.sm}px;
 `;
 
+const ProfileCard = styled(Card)`
+  margin-bottom: ${({theme}) => theme.spacing.md}px;
+  background-color: #8B5CF6;
+  ${({theme}) => theme.shadows.lg}
+`;
+
+const ProfileHeader = styled.View`
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: ${({theme}) => theme.spacing.sm}px;
+`;
+
+const ProfileIcon = styled.View`
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.2);
+  justify-content: center;
+  align-items: center;
+  margin-right: ${({theme}) => theme.spacing.sm}px;
+`;
+
+const ProfileTitle = styled.Text`
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: ${({theme}) => theme.typography.body.fontFamily};
+`;
+
+const ProfileName = styled.Text`
+  color: #FFFFFF;
+  font-size: 20px;
+  font-weight: 700;
+  font-family: ${({theme}) => theme.typography.h3.fontFamily};
+`;
+
+const ProfileDescription = styled.Text`
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  margin-top: ${({theme}) => theme.spacing.xs}px;
+  font-family: ${({theme}) => theme.typography.body.fontFamily};
+`;
+
+const DistributionSection = styled.View`
+  margin-top: ${({theme}) => theme.spacing.md}px;
+`;
+
+const DistributionTitle = styled.Text`
+  color: ${({theme}) => theme.colors.textDark};
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: ${({theme}) => theme.spacing.sm}px;
+  font-family: ${({theme}) => theme.typography.h3.fontFamily};
+`;
+
+const DistributionItem = styled.View`
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${({theme}) => theme.spacing.sm}px 0;
+  border-bottom-width: 1px;
+  border-bottom-color: ${({theme}) => theme.colors.border};
+`;
+
+const DistributionLabel = styled.View`
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+`;
+
+const DistributionBar = styled.View<{percentage: number; color: string}>`
+  height: 8px;
+  width: ${({percentage}) => percentage}%;
+  background-color: ${({color}) => color};
+  border-radius: 4px;
+  margin-right: ${({theme}) => theme.spacing.sm}px;
+`;
+
+const DistributionText = styled.Text`
+  color: ${({theme}) => theme.colors.textDark};
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 60px;
+  text-align: right;
+  font-family: ${({theme}) => theme.typography.body.fontFamily};
+`;
+
 const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({
   metrics,
+  simulationMetrics,
   loading,
   error,
+  riskProfile,
   onRefresh,
   onAddInvestment,
 }) => {
@@ -171,40 +263,70 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({
     );
   }
 
+  // Usar métricas de simulação se disponíveis, senão usar métricas padrão
+  const totalInvested = simulationMetrics?.totalInvested || metrics.totalInvested;
+  const futureValue = simulationMetrics?.futureValue || metrics.totalValue;
+  const expectedReturn = simulationMetrics?.expectedReturn || 0;
+  const riskLevel = simulationMetrics?.riskLevel || 'Médio';
+  const liquidityLevel = simulationMetrics?.liquidityLevel || 'Média';
+  const accumulatedReturn = simulationMetrics?.accumulatedReturn || expectedReturn;
+
   const dashboardMetrics = [
     {
-      title: 'Valor Total',
-      value: formatCurrency(metrics.totalValue),
-      change: metrics.dailyChangePercent,
+      title: 'Total Investido',
+      value: formatCurrency(totalInvested),
+      change: 0,
       icon: 'wallet-outline',
       color: '#8B5CF6',
       isHighlight: true,
     },
     {
-      title: 'Valor Investido',
-      value: formatCurrency(metrics.totalInvested),
-      change: 0,
+      title: 'Valor Potencial Futuro',
+      value: formatCurrency(futureValue),
+      change: expectedReturn,
       icon: 'trending-up-outline',
       color: '#10B981',
       isHighlight: false,
     },
     {
-      title: 'Lucro/Prejuízo',
-      value: formatCurrency(metrics.profitLoss),
-      change: metrics.profitLossPercent,
+      title: 'Rentabilidade Esperada',
+      value: formatPercentage(expectedReturn),
+      change: 0,
       icon: 'analytics-outline',
-      color: metrics.profitLoss >= 0 ? '#10B981' : '#EF4444',
+      color: '#8B5CF6',
       isHighlight: false,
     },
     {
-      title: 'Variação Hoje',
-      value: formatCurrency(metrics.dailyChange),
-      change: metrics.dailyChangePercent,
-      icon: 'today-outline',
-      color: metrics.dailyChange >= 0 ? '#10B981' : '#EF4444',
+      title: 'Risco da Carteira',
+      value: riskLevel,
+      change: 0,
+      icon: 'shield-outline',
+      color: riskLevel === 'Baixo' ? '#10B981' : riskLevel === 'Médio' ? '#F59E0B' : '#EF4444',
+      isHighlight: false,
+    },
+    {
+      title: 'Liquidez',
+      value: liquidityLevel,
+      change: 0,
+      icon: 'cash-outline',
+      color: liquidityLevel === 'Alta' ? '#10B981' : liquidityLevel === 'Média' ? '#F59E0B' : '#EF4444',
+      isHighlight: false,
+    },
+    {
+      title: 'Rentabilidade Acumulada',
+      value: formatPercentage(accumulatedReturn),
+      change: 0,
+      icon: 'stats-chart-outline',
+      color: '#10B981',
       isHighlight: false,
     },
   ];
+
+  const categoryColors: Record<string, string> = {
+    'Renda Fixa': '#10B981',
+    'Fundos': '#8B5CF6',
+    'Renda Variável': '#EF4444',
+  };
 
   return (
     <Container>
@@ -218,6 +340,24 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({
           icon={<Ionicons name="add" size={16} color="#FFFFFF" />}
         />
       </Header>
+
+      {/* Card de Perfil do Investidor */}
+      {riskProfile && (
+        <ProfileCard>
+          <ProfileHeader>
+            <ProfileIcon>
+              <Ionicons name="person-outline" size={20} color="#FFFFFF" />
+            </ProfileIcon>
+            <View>
+              <ProfileTitle>Seu Perfil de Investidor</ProfileTitle>
+              <ProfileName>{riskProfile}</ProfileName>
+            </View>
+          </ProfileHeader>
+          <ProfileDescription>
+            {getRiskProfileDescription(riskProfile)}
+          </ProfileDescription>
+        </ProfileCard>
+      )}
 
       <MetricsGrid>
         {dashboardMetrics.map((metric, index) => (
@@ -245,6 +385,29 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({
           </MetricCard>
         ))}
       </MetricsGrid>
+
+      {/* Gráfico de Distribuição */}
+      {simulationMetrics && simulationMetrics.distributionByCategory.length > 0 && (
+        <DistributionSection>
+          <DistributionTitle>Distribuição por Categoria</DistributionTitle>
+          <Card variant="elevated" padding>
+            {simulationMetrics.distributionByCategory.map((dist, index) => (
+              <DistributionItem key={index}>
+                <DistributionLabel>
+                  <DistributionBar 
+                    percentage={dist.percentage} 
+                    color={categoryColors[dist.category] || '#8B5CF6'}
+                  />
+                  <Text style={{fontSize: 14, color: '#374151', flex: 1}}>
+                    {dist.category}
+                  </Text>
+                </DistributionLabel>
+                <DistributionText>{formatPercentage(dist.percentage)}</DistributionText>
+              </DistributionItem>
+            ))}
+          </Card>
+        </DistributionSection>
+      )}
     </Container>
   );
 };

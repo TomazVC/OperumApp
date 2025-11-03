@@ -14,6 +14,9 @@ export interface PortfolioItem {
   assetName: string;
   assetType?: string;
   amount: number;
+  quantity?: number;
+  unitPrice?: number;
+  expectedReturn?: number;
 }
 
 export interface ChatMessage {
@@ -111,4 +114,41 @@ export interface NewsItem {
   url: string;
   publishedAt: string;
   source: string;
+}
+
+// Tipos para simulação de portfólio
+export type AssetCategory = 'Renda Fixa' | 'Fundos' | 'Renda Variável';
+export type AssetRisk = 'Baixo' | 'Médio' | 'Alto';
+export type AssetLiquidity = 'Alta' | 'Média' | 'Baixa';
+
+export interface RecommendedAsset {
+  name: string;
+  category: AssetCategory;
+  risk: AssetRisk;
+  liquidity: AssetLiquidity;
+  expectedReturn: number;
+  justification: string;
+}
+
+export interface RecommendedPortfolio {
+  profile: RiskProfile;
+  distribution: {
+    category: AssetCategory;
+    percentage: number;
+  }[];
+  recommendedAssets: RecommendedAsset[];
+}
+
+export interface PortfolioSimulationMetrics {
+  totalInvested: number;
+  futureValue: number;
+  expectedReturn: number;
+  riskLevel: AssetRisk;
+  liquidityLevel: AssetLiquidity;
+  accumulatedReturn: number;
+  distributionByCategory: {
+    category: AssetCategory;
+    amount: number;
+    percentage: number;
+  }[];
 }
