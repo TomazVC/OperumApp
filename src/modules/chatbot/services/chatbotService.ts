@@ -1,4 +1,4 @@
-import {callOllamaAPI, buildMessagesArray} from '../../../core/ai/aiService';
+import {callGeminiAPI, buildMessagesArray} from '../../../core/ai/aiService';
 import {insertChatMessage, ChatMessage as DBChatMessage} from '../../../core/database/db';
 import {ChatMessage} from '../../../shared/types';
 
@@ -15,8 +15,8 @@ export const chatbotService = {
       // Construir array de mensagens com histórico
       const messages = buildMessagesArray(userId, message);
 
-      // Chamar API do Ollama
-      const assistantResponse = await callOllamaAPI(messages);
+      // Chamar API do Google Gemini
+      const assistantResponse = await callGeminiAPI(messages);
 
       // Salvar resposta do assistente no banco
       insertChatMessage({

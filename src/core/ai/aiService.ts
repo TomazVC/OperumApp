@@ -1,5 +1,7 @@
-import {OLLAMA_API_URL, OLLAMA_MODEL} from '../../config/env';
+import {GEMINI_API_KEY, GEMINI_MODEL} from '../../config/env';
+// import {OLLAMA_API_URL, OLLAMA_MODEL} from '../../config/env'; // Mantido para referência
 import {getChatHistory} from '../database/db';
+import {GoogleGenerativeAI} from '@google/generative-ai';
 import axios from 'axios';
 
 export interface ChatbotResponse {
@@ -248,9 +250,138 @@ export const buildMessagesArray = (userId: number, userMessage: string): Message
 };
 
 /**
+ * Chama o Google Gemini API para obter resposta do chatbot
+ * Faz fallback para mock se a API não estiver disponível
+ */
+export const callGeminiAPI = async (messages: Message[]): Promise<string> => {
+  const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+  const userInput = lastUserMessage?.content || '';
+  
+  // Verificar se a pergunta está fora do contexto financeiro
+  if (isOutOfFinanceContext(userInput)) {
+    return 'Posso ajudar apenas com investimentos brasileiros. Qual sua dúvida sobre CDB, Tesouro, ações, FIIs ou ETFs?';
+  }
+  
+  // Verificar se há template específico para o produto
+  const productTemplate = getProductTemplate(userInput);
+  
+  // Construir system instruction com ou sem template específico
+  const systemInstruction = productTemplate 
+    ? `${SYSTEM_PROMPT}\n\n${productTemplate}`
+    : SYSTEM_PROMPT;
+  
+  try {
+    console.log('Chamando Google Gemini API...');
+    
+    // Inicializar cliente Gemini
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ 
+      model: GEMINI_MODEL,
+      systemInstruction: systemInstruction
+    });
+    
+    // Converter mensagens para formato Gemini (remover system messages, já está no systemInstruction)
+    // A Gemini API espera um histórico de mensagens alternando entre user e model
+    // IMPORTANTE: O histórico deve SEMPRE começar com 'user', não 'model'
+    const filteredMessages = messages.filter(msg => msg.role !== 'system');
+    
+    // Remover a última mensagem (que é a mensagem atual do usuário que será enviada separadamente)
+    const historyMessages = filteredMessages.slice(0, -1);
+    
+    // Converter para formato Gemini e garantir que comece com 'user'
+    // Se o histórico começar com 'model', remover até encontrar a primeira mensagem 'user'
+    const chatHistory: Array<{role: 'user' | 'model'; parts: Array<{text: string}>}> = [];
+    
+    // Encontrar o primeiro índice com role 'user'
+    let firstUserIndex = -1;
+    for (let i = 0; i < historyMessages.length; i++) {
+      if (historyMessages[i].role === 'user') {
+        firstUserIndex = i;
+        break;
+      }
+    }
+    
+    // Se encontrou um 'user', começar a partir dele; se não, não usar histórico
+    if (firstUserIndex >= 0) {
+      // Converter todas as mensagens a partir do primeiro 'user'
+      for (let i = firstUserIndex; i < historyMessages.length; i++) {
+        const msg = historyMessages[i];
+        const role = msg.role === 'user' ? 'user' : 'model';
+        chatHistory.push({
+          role,
+          parts: [{ text: msg.content }]
+        });
+      }
+    }
+    
+    // Criar histórico de chat ou usar mensagem única
+    let response;
+    if (chatHistory.length > 0 && chatHistory[0].role === 'user') {
+      // Verificar se o histórico termina em 'user' (deve terminar em 'model' para ser válido)
+      // Se terminar em 'user', remover a última mensagem pois será enviada separadamente
+      const lastRole = chatHistory[chatHistory.length - 1].role;
+      const validHistory = lastRole === 'user' 
+        ? chatHistory.slice(0, -1) 
+        : chatHistory;
+      
+      if (validHistory.length > 0 && validHistory[0].role === 'user') {
+        // Se há histórico válido começando com 'user', usar startChat
+        const chat = model.startChat({
+          history: validHistory
+        });
+        response = await chat.sendMessage(userInput);
+      } else {
+        // Se não há histórico válido, usar generateContent diretamente
+        response = await model.generateContent(userInput);
+      }
+    } else {
+      // Se não há histórico válido, usar generateContent diretamente
+      response = await model.generateContent(userInput);
+    }
+    
+    console.log('Resposta do Gemini:', response);
+    
+    // Extrair texto da resposta
+    const responseText = response.response.text();
+    
+    if (responseText) {
+      console.log('✅ Gemini funcionou!');
+      return ensureCompleteResponse(responseText);
+    }
+    
+    throw new Error('Resposta vazia do Gemini');
+    
+  } catch (error: any) {
+    console.error('Erro ao chamar Gemini:', error);
+    console.log('Erro detalhado:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    // Tratamento de erros com fallback para mock
+    if (error.message?.includes('API key') || error.message?.includes('401')) {
+      console.log('Erro de autenticação Gemini, usando fallback mock');
+      return await getMockResponse(userInput.toLowerCase());
+    }
+    
+    if (error.message?.includes('timeout') || error.message?.includes('network')) {
+      console.log('Timeout ou erro de rede no Gemini, usando fallback mock');
+      return await getMockResponse(userInput.toLowerCase());
+    }
+    
+    // Outros erros: usar mock
+    console.log('Usando fallback mock devido a erro no Gemini');
+    return await getMockResponse(userInput.toLowerCase());
+  }
+};
+
+/**
  * Chama o Ollama para obter resposta do chatbot (IA local)
  * Faz fallback para mock se Ollama não estiver disponível
+ * MANTIDO PARA REFERÊNCIA - Não mais usado
  */
+/* 
 export const callOllamaAPI = async (messages: Message[]): Promise<string> => {
   const lastUserMessage = messages.filter(m => m.role === 'user').pop();
   const userInput = lastUserMessage?.content || '';
@@ -331,6 +462,7 @@ Resposta completa:`;
     return await getMockResponse(userInput.toLowerCase());
   }
 };
+*/
 
 /**
  * Mock inteligente baseado em templates específicos
