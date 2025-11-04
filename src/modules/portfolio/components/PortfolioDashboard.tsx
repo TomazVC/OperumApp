@@ -20,6 +20,7 @@ interface PortfolioDashboardProps {
 
 const Container = styled.View`
   margin-bottom: ${({theme}) => theme.spacing.lg}px;
+  padding-horizontal: ${({theme}) => theme.spacing.lg}px;
 `;
 
 const Header = styled.View`

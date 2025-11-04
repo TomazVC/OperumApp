@@ -68,7 +68,7 @@ const ConnectionText = styled.Text<{isOnline: boolean}>`
 
 const ContentContainer = styled(ScrollView)`
   flex: 1;
-  padding: ${({theme}) => theme.spacing.lg}px;
+  padding-vertical: ${({theme}) => theme.spacing.lg}px;
 `;
 
 const SectionTitle = styled.Text`
@@ -415,7 +415,7 @@ const PortfolioScreen: React.FC = () => {
         />
 
         {/* Acesso ao Histórico de Simulações */}
-        <View style={{marginBottom: 16}}>
+        <View style={{marginBottom: 16, paddingHorizontal: 24}}>
           <Button
             title="Histórico de Simulações"
             onPress={handleOpenSimulationHistory}
@@ -426,14 +426,16 @@ const PortfolioScreen: React.FC = () => {
         </View>
 
         {/* Sugestões da IA */}
-        <AIRecommendations
-          riskProfile={riskProfile}
-          onApplyRecommendation={handleApplyRecommendation}
-        />
+        <View style={{paddingHorizontal: 24}}>
+          <AIRecommendations
+            riskProfile={riskProfile}
+            onApplyRecommendation={handleApplyRecommendation}
+          />
+        </View>
 
         {/* Carteira Simulada */}
         {simulatedItems.length > 0 && (
-          <StocksContainer>
+          <StocksContainer style={{paddingHorizontal: 24}}>
             <SectionTitle>Carteira Simulada</SectionTitle>
             {simulatedItems.map((item) => {
               const asset = portfolioSimulationService.getAssetByName(item.assetName);
@@ -490,24 +492,28 @@ const PortfolioScreen: React.FC = () => {
         )}
 
         {/* Indicadores de Mercado */}
-        <MarketIndicators
-          data={marketData}
-          loading={marketDataLoading}
-          error={marketDataError}
-          lastUpdate={lastUpdate}
-          onRetry={retryFailedRequests}
-        />
+        <View style={{paddingHorizontal: 24}}>
+          <MarketIndicators
+            data={marketData}
+            loading={marketDataLoading}
+            error={marketDataError}
+            lastUpdate={lastUpdate}
+            onRetry={retryFailedRequests}
+          />
+        </View>
 
         {/* Gráfico de Performance */}
-        <PerformanceChart
-          data={chartData}
-          period={chartPeriod}
-          onPeriodChange={setChartPeriod}
-          loading={isLoading}
-        />
+        <View style={{paddingHorizontal: 24}}>
+          <PerformanceChart
+            data={chartData}
+            period={chartPeriod}
+            onPeriodChange={setChartPeriod}
+            loading={isLoading}
+          />
+        </View>
 
         {/* Lista de Ações */}
-        <StocksContainer>
+        <StocksContainer style={{paddingHorizontal: 24}}>
           <SectionTitle>Suas Ações</SectionTitle>
           {stockPositions.length > 0 ? (
             stockPositions.map((position, index) => (
