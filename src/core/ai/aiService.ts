@@ -158,6 +158,83 @@ const isOutOfFinanceContext = (userInput: string): boolean => {
 };
 
 /**
+ * Detecta se é small talk muito básico (sempre usa Mock, mesmo com histórico)
+ */
+const isVeryBasicSmallTalk = (userInput: string): boolean => {
+  const input = userInput.toLowerCase().trim();
+  // Small talk muito básico que não precisa de contexto
+  return /^(oi|olá|ola|tudo bem|como vai|tchau|obrigado|obrigada|valeu|obg|obrigad[oa]|vlw|ok|okay)$/i.test(input);
+};
+
+/**
+ * Detecta se a pergunta é básica/genérica e pode ser respondida pelo Mock
+ * Perguntas complexas que precisam de análise → Gemini API
+ */
+const isBasicQuestion = (userInput: string): boolean => {
+  const input = userInput.toLowerCase().trim();
+  
+  // Perguntas muito curtas (small talk)
+  if (input.length < 20 || 
+      /^(oi|olá|ola|tudo bem|como vai|tchau|obrigado|obrigada|valeu|obg)$/i.test(input)) {
+    return true;
+  }
+  
+  // Padrões de perguntas genéricas/conceituais
+  const basicPatterns = [
+    // Small talk e perguntas curtas
+    /^(você|vc|tu)\s+(já|tem|conhece|sabe|pode|quer|está|é)/i,
+    /^(qual|quais|como|quando|onde|por que|porque|o que|o que é)\s+/i,
+    /^(me explique|explique|me fale|fale sobre|o que é|quem é)\s+/i,
+    /^(prefere|prefer|busca|busco|tem|tenho|já|já investe)\s+/i,
+    /^(quero saber|gostaria de saber|quero entender|quero aprender)\s+/i,
+    
+    // Perguntas conceituais básicas
+    /(diferença entre|diferença de|compare|comparar)\s+/i,
+    /(como funciona|o que significa|significa o que)\s+/i,
+    /(é melhor|qual melhor|melhor opção)\s+/i,
+    
+    // Perguntas de preferência genérica
+    /(prefere|preferir|escolher|escolha)\s+/i,
+    /(qual seu|meu perfil|seu perfil)\s+/i,
+  ];
+  
+  // Verificar se corresponde a padrões básicos
+  const matchesBasicPattern = basicPatterns.some(pattern => pattern.test(input));
+  
+  // Se for muito curta ou padrão básico → Mock
+  if (matchesBasicPattern && input.length < 100) {
+    return true;
+  }
+  
+  // Perguntas complexas que DEVEM usar API
+  const complexPatterns = [
+    // Análises e cálculos
+    /(calcular|calcule|quanto|quanto vai|quanto rende|simulação|simular|simule)/i,
+    /(projeção|projeções|projetar|projetar ganhos|rentabilidade)/i,
+    /(recomendação|recomendar|sugestão|sugerir|montar carteira|montar estratégia)/i,
+    /(análise|analisar|avaliar|avaliação|comparar carteiras|comparar carteira)/i,
+    /(gráfico|gráficos|tendência|tendências|histórico|histórico de)/i,
+    /(balanceamento|balancear|alocação|alocar|alocar ativos)/i,
+    /(diversificar|diversificação|rebalancear|rebalanceamento)/i,
+    /(estratégia|estratégias|planejamento|planejar)/i,
+    /(cálculo|calcular retorno|calcular rentabilidade)/i,
+  ];
+  
+  // Se tiver padrões complexos → API
+  if (complexPatterns.some(pattern => pattern.test(input))) {
+    return false;
+  }
+  
+  // Perguntas médias/complexas (mais de 50 caracteres) → API
+  if (input.length > 50 && !matchesBasicPattern) {
+    return false;
+  }
+  
+  // Padrão: perguntas curtas e conceituais → Mock
+  return true;
+};
+
+/**
  * Verifica se a resposta está completa e adiciona conclusão se necessário
  */
 const ensureCompleteResponse = (response: string): string => {
@@ -257,9 +334,34 @@ export const callGeminiAPI = async (messages: Message[]): Promise<string> => {
   const lastUserMessage = messages.filter(m => m.role === 'user').pop();
   const userInput = lastUserMessage?.content || '';
   
+  // Verificar se há histórico de conversa (mais de 1 mensagem do usuário)
+  // Isso inclui a mensagem atual + mensagens anteriores
+  const userMessages = messages.filter(m => m.role === 'user');
+  const hasHistory = userMessages.length > 1;
+  
   // Verificar se a pergunta está fora do contexto financeiro
   if (isOutOfFinanceContext(userInput)) {
     return 'Posso ajudar apenas com investimentos brasileiros. Qual sua dúvida sobre CDB, Tesouro, ações, FIIs ou ETFs?';
+  }
+  
+  // Small talk muito básico → sempre Mock (economiza API mesmo com histórico)
+  if (isVeryBasicSmallTalk(userInput)) {
+    console.log('👋 Small talk básico detectado, usando Mock para economizar API');
+    return await getMockResponse(userInput.toLowerCase());
+  }
+  
+  // Se há histórico de conversa, usar API para manter contexto
+  if (hasHistory) {
+    console.log('💬 Conversa em contexto detectada, usando Gemini API para manter continuidade');
+    // Proceder direto para chamada da API
+  } else {
+    // Se não há histórico, verificar se é pergunta básica → usar Mock para economizar API
+    if (isBasicQuestion(userInput)) {
+      console.log('📝 Pergunta básica isolada detectada, usando Mock para economizar API');
+      return await getMockResponse(userInput.toLowerCase());
+    }
+    
+    console.log('🤖 Pergunta complexa, usando Gemini API');
   }
   
   // Verificar se há template específico para o produto
@@ -484,7 +586,7 @@ const getMockResponse = async (userInput: string): Promise<string> => {
     return ensureCompleteResponse(productTemplate);
   }
   
-  // Respostas contextuais melhoradas
+  // ========== SMALL TALK ==========
   if (input.includes('oi') || input.includes('olá') || input.includes('ola')) {
     return ensureCompleteResponse(`Olá! Sou o assistente do Operum e posso te ajudar com investimentos brasileiros.
 
@@ -497,6 +599,360 @@ Posso explicar sobre:
 Qual sua dúvida sobre investimentos?`);
   }
   
+  if (input.includes('tudo bem') || input.includes('como vai') || input.includes('como posso te ajudar')) {
+    return ensureCompleteResponse(`Tudo bem! Estou aqui para te ajudar com investimentos brasileiros.
+
+Posso te orientar sobre:
+- Produtos de renda fixa (CDB, Tesouro, LCI/LCA)
+- Renda variável (Ações, FIIs, ETFs)
+- Como começar a investir
+- Estratégias de diversificação
+
+Em que posso ajudar hoje?`);
+  }
+  
+  // ========== CDBs ==========
+  if (input.includes('cdb') || input.includes('certificado de depósito')) {
+    if (input.includes('liquidez') || input.includes('diária')) {
+      return ensureCompleteResponse(`CDB com liquidez diária permite resgate a qualquer momento, geralmente com rentabilidade menor que CDBs com prazo fixo.
+
+Vantagens:
+- Flexibilidade para resgatar quando precisar
+- Ideal para reserva de emergência
+- Rentabilidade atrelada ao CDI
+
+Desvantagens:
+- Rentabilidade geralmente menor que CDBs com prazo
+- Pode ter carência mínima (ex: 30 dias)
+
+Recomendação: Use para reserva de emergência ou quando precisa de flexibilidade.`);
+    }
+    
+    if (input.includes('prefixado') || input.includes('pós-fixado') || input.includes('pós fixado')) {
+      return ensureCompleteResponse(`CDB pode ser prefixado ou pós-fixado:
+
+**Prefixado:** Taxa fixa conhecida desde o início (ex: 12% ao ano)
+- Você sabe exatamente quanto vai receber
+- Ideal quando a Selic está caindo
+- Risco: se a Selic subir, você perde oportunidade
+
+**Pós-fixado:** Atrelado ao CDI (ex: 110% do CDI)
+- Rentabilidade acompanha a Selic
+- Ideal quando a Selic está estável ou subindo
+- Mais flexível às mudanças de mercado
+
+Qual seu objetivo e prazo para investir?`);
+    }
+    
+    if (input.includes('prazo') || input.includes('vencimento')) {
+      return ensureCompleteResponse(`CDB pode ter diferentes prazos:
+
+**Curto prazo (30-180 dias):**
+- Menor rentabilidade
+- Mais flexibilidade
+- Ideal para começar
+
+**Médio prazo (1-2 anos):**
+- Rentabilidade intermediária
+- Boa opção para objetivos específicos
+
+**Longo prazo (2+ anos):**
+- Maior rentabilidade
+- Menor flexibilidade
+- Ideal para acumular patrimônio
+
+Qual seu objetivo e prazo?`);
+    }
+    
+    return ensureCompleteResponse(`CDB é um Certificado de Depósito Bancário emitido por bancos.
+
+**Características:**
+- Rentabilidade geralmente atrelada ao CDI
+- Proteção do FGC até R$ 250.000 por CPF/instituição
+- Pode ter liquidez diária ou no vencimento
+- Tributação: IR regressivo sobre os rendimentos
+
+**Tipos:**
+- Prefixado: taxa fixa conhecida
+- Pós-fixado: atrelado ao CDI
+- IPCA+: proteção contra inflação
+
+Dica: para reserva de emergência, prefira CDB com liquidez diária.`);
+  }
+  
+  // ========== TESOURO DIRETO ==========
+  if (input.includes('tesouro') || input.includes('selic') || input.includes('ipca')) {
+    if (input.includes('selic')) {
+      return ensureCompleteResponse(`Tesouro Selic é um título público indexado à taxa Selic.
+
+**Características:**
+- Mais seguro do país (risco soberano)
+- Liquidez diária
+- Rentabilidade acompanha a Selic
+- Tributação: IR regressivo
+
+**Ideal para:**
+- Reserva de emergência
+- Investidores conservadores
+- Objetivos de curto prazo
+
+É a opção mais segura para começar a investir!`);
+    }
+    
+    if (input.includes('ipca')) {
+      return ensureCompleteResponse(`Tesouro IPCA+ oferece proteção contra inflação mais taxa fixa.
+
+**Características:**
+- Rentabilidade: IPCA + taxa fixa (ex: IPCA + 5%)
+- Proteção contra inflação
+- Risco: marcação a mercado (pode oscilar antes do vencimento)
+- Tributação: IR regressivo
+
+**Ideal para:**
+- Objetivos de médio/longo prazo
+- Proteger poder de compra
+- Investidores que toleram volatilidade
+
+Cuidado: pode oscilar antes do vencimento, então mantenha até o final.`);
+    }
+    
+    if (input.includes('marcação a mercado') || input.includes('marcação')) {
+      return ensureCompleteResponse(`Marcação a mercado é o ajuste diário do preço do título conforme condições do mercado.
+
+**Como funciona:**
+- Se a Selic sobe, títulos prefixados caem de valor
+- Se a Selic cai, títulos prefixados sobem de valor
+- Tesouro Selic: menor impacto (pós-fixado)
+- Tesouro IPCA+: pode oscilar conforme expectativas de inflação
+
+**Dica:**
+- Tesouro Selic: menor volatilidade (ideal para quem quer segurança)
+- Tesouro IPCA+: mantenha até o vencimento para evitar perdas
+
+Se você mantém até o vencimento, recebe o valor prometido.`);
+    }
+    
+    return ensureCompleteResponse(`Tesouro Direto é a plataforma do governo para compra de títulos públicos.
+
+**Tipos principais:**
+- **Tesouro Selic:** Mais seguro, liquidez diária, atrelado à Selic
+- **Tesouro IPCA+:** Proteção contra inflação + taxa fixa
+- **Tesouro Prefixado:** Taxa fixa conhecida desde o início
+
+**Vantagens:**
+- Mais seguro do país
+- Boa rentabilidade
+- Liquidez diária (Selic)
+- Ideal para começar
+
+Qual seu objetivo e prazo?`);
+  }
+  
+  // ========== AÇÕES ==========
+  if (input.includes('ação') || input.includes('ações') || input.includes('ação')) {
+    if (input.includes('dividendo') || input.includes('dividendos')) {
+      return ensureCompleteResponse(`Ações podem pagar dividendos aos acionistas.
+
+**Como funciona:**
+- Empresas distribuem parte do lucro aos acionistas
+- Pagamentos geralmente mensais, trimestrais ou semestrais
+- Dividend Yield: quanto a ação paga em relação ao preço
+
+**Tipos de investidores:**
+- **Foco em dividendos:** Busca renda mensal (ações de empresas sólidas)
+- **Foco em crescimento:** Busca valorização a longo prazo
+
+**Dica:** Dividendos são isentos de IR até R$ 20.000/mês em vendas de ações.
+
+Qual seu perfil: renda ou crescimento?`);
+    }
+    
+    if (input.includes('fundamento') || input.includes('fundamentos')) {
+      return ensureCompleteResponse(`Análise de fundamentos avalia a saúde financeira da empresa.
+
+**Métricas principais:**
+- P/L (Preço/Lucro): quanto você paga por cada real de lucro
+- P/VP (Preço/Valor Patrimonial): relação entre preço e patrimônio
+- ROE (Return on Equity): rentabilidade sobre patrimônio
+- Dívida/Patrimônio: nível de endividamento
+
+**Dica:**
+- Empresas com P/L baixo podem estar baratas
+- ROE alto indica boa gestão
+- Baixa dívida = mais segurança
+
+Quer ajuda para analisar uma empresa específica?`);
+    }
+    
+    return ensureCompleteResponse(`Ações representam participação no capital de empresas.
+
+**Características:**
+- Risco: volatilidade, liquidez, fatores macro
+- Potencial: crescimento e dividendos
+- Tributação: isenção até R$ 20.000/mês em vendas
+
+**Tipos de estratégia:**
+- **Dividendos:** Foco em renda mensal
+- **Crescimento:** Foco em valorização
+- **Value:** Busca empresas subvalorizadas
+
+**Recomendado para:**
+- Perfil moderado/agressivo
+- Longo prazo (5+ anos)
+- Diversificação da carteira
+
+Você já investe em ações ou está começando?`);
+  }
+  
+  // ========== FIIs ==========
+  if (input.includes('fii') || input.includes('fundos imobiliários') || input.includes('fundo imobiliário')) {
+    if (input.includes('dividend yield') || input.includes('yield') || input.includes('dividendo')) {
+      return ensureCompleteResponse(`Dividend Yield é quanto o FII paga em dividendos em relação ao preço da cota.
+
+**Como calcular:**
+- Dividend Yield = (Dividendos anuais / Preço da cota) × 100
+- Exemplo: FII paga R$ 1,20/ano e cota vale R$ 100 → Yield de 1,2%
+
+**Tipos de FIIs:**
+- **Papel (CRI):** Recebíveis imobiliários (maior yield)
+- **Tijolo:** Imóveis físicos (shoppings, logística)
+- **Híbridos:** Combinação de ambos
+
+**Dica:** Yield alto não é tudo - verifique qualidade do patrimônio e gestão.
+
+Quer entender melhor algum tipo específico?`);
+    }
+    
+    if (input.includes('vacância') || input.includes('vacância')) {
+      return ensureCompleteResponse(`Vacância é a porcentagem de imóveis desocupados em um FII de tijolo.
+
+**Como funciona:**
+- Vacância baixa (<5%): bom sinal (imóveis ocupados)
+- Vacância alta (>15%): atenção (pode indicar problemas)
+- FIIs de papel não têm vacância (são recebíveis)
+
+**O que observar:**
+- Vacância histórica da gestora
+- Tipo de imóvel (logística geralmente tem menor vacância)
+- Localização dos imóveis
+
+**Dica:** FIIs bem geridos mantêm vacância baixa e estável.
+
+Quer comparar FIIs?`);
+    }
+    
+    return ensureCompleteResponse(`FIIs são Fundos Imobiliários que investem em imóveis.
+
+**Características:**
+- Renda mensal via dividendos
+- Isenção IR sobre rendimentos mensais
+- Tributação: IR sobre ganho de capital (venda de cotas)
+- Diversificação automática em imóveis
+
+**Tipos:**
+- **Papel (CRI):** Recebíveis imobiliários
+- **Tijolo:** Imóveis físicos (shoppings, logística, escritórios)
+- **Híbridos:** Combinação de ambos
+
+**Diversifique:**
+- Logístico, CRI, lajes corporativas
+- Diferentes regiões e setores
+
+Quer entender melhor algum tipo específico?`);
+  }
+  
+  // ========== ETFs ==========
+  if (input.includes('etf') || input.includes('fundos de índice')) {
+    if (input.includes('diversificação') || input.includes('diversificar')) {
+      return ensureCompleteResponse(`ETFs oferecem diversificação automática ao investir em um índice.
+
+**Como funciona:**
+- Um ETF replica um índice (ex: Ibovespa, S&P 500)
+- Ao comprar 1 cota, você investe em todas as empresas do índice
+- Diversificação automática sem precisar escolher ações individuais
+
+**Vantagens:**
+- Baixo custo (taxa de administração menor que fundos ativos)
+- Diversificação ampla
+- Liquidez diária
+- Simplicidade
+
+**Tipos:**
+- ETFs de ações (Ibovespa, S&P 500)
+- ETFs de renda fixa
+- ETFs setoriais
+
+Quer entender melhor algum tipo específico?`);
+    }
+    
+    return ensureCompleteResponse(`ETFs são Fundos de Índice que investem em índices de mercado.
+
+**Características:**
+- Diversificação automática
+- Taxa baixa de administração
+- Liquidez diária
+- Tributação: come-cotas (fundos)
+
+**Tipos:**
+- **Índices brasileiros:** Ibovespa, Small Caps
+- **Índices internacionais:** S&P 500, Nasdaq
+- **Renda fixa:** ETFs de títulos
+- **Setoriais:** Energia, tecnologia, etc.
+
+**Vantagem:** Exposição ampla com baixo custo.
+
+Prefere ETFs brasileiros ou internacionais?`);
+  }
+  
+  // ========== CRIPTOMOEDAS ==========
+  if (input.includes('cripto') || input.includes('bitcoin') || input.includes('ethereum') || input.includes('crypto')) {
+    return ensureCompleteResponse(`Criptomoedas são investimentos de alto risco.
+
+**Características:**
+- Risco muito alto, volatilidade extrema
+- Sem garantia do FGC
+- Custódia e segurança são essenciais
+- Tributação: IR sobre ganhos (15% a 22,5%)
+
+**Principais:**
+- **Bitcoin:** Primeira e maior cripto
+- **Ethereum:** Plataforma para aplicações descentralizadas
+- **Altcoins:** Outras criptomoedas (maior risco)
+
+**Recomendações:**
+- Apenas o que pode oscilar muito (posição satélite)
+- Máximo 5-10% da carteira (para perfil arrojado)
+- Use exchanges confiáveis e carteiras seguras
+
+**Atenção:** É um investimento especulativo, não recomendado para iniciantes.
+
+Quer entender melhor sobre segurança e custódia?`);
+  }
+  
+  // ========== RESERVA DE EMERGÊNCIA ==========
+  if (input.includes('reserva') || input.includes('emergência') || input.includes('emergencia')) {
+    return ensureCompleteResponse(`Reserva de Emergência deve ter alta liquidez e baixo risco.
+
+**Características:**
+- Prazo: curto | Liquidez: alta | Risco: baixo
+- Objetivo: 3-6 meses de gastos essenciais
+- Opções: Tesouro Selic, CDB liquidez diária
+
+**Como montar:**
+1. Calcule seus gastos mensais essenciais
+2. Multiplique por 3-6 meses
+3. Invista em produtos de alta liquidez
+4. Mantenha separado de outros investimentos
+
+**Evite:**
+- Produtos com marcação a mercado (podem oscilar)
+- Produtos com carência longa
+- Renda variável (ações, FIIs)
+
+Qual seu objetivo: começar a montar ou já tem uma reserva?`);
+  }
+  
+  // ========== OUTRAS PERGUNTAS FINANCEIRAS ==========
   if (input.includes('saldo') || input.includes('quanto tenho') || input.includes('carteira')) {
     return ensureCompleteResponse(`Para ver seus dados pessoais, acesse:
 - Saldo/Carteira: Menu > Carteira no app
@@ -505,7 +961,7 @@ Qual sua dúvida sobre investimentos?`);
 
 Não consigo acessar seus dados por segurança.`);
   }
-  
+
   if (input.includes('investimento') || input.includes('investir') || input.includes('começar')) {
     return ensureCompleteResponse(`Para começar a investir, considere:
 
@@ -516,32 +972,105 @@ Não consigo acessar seus dados por segurança.`);
 
 Qual seu objetivo e prazo para investir?`);
   }
-  
+
   if (input.includes('ajuda') || input.includes('help')) {
     return ensureCompleteResponse(`Posso ajudar com:
 
-Produtos brasileiros:
+**Produtos brasileiros:**
 - CDB, LCI, LCA, Tesouro Selic, Tesouro IPCA+
 - Ações, FIIs, ETFs
 
-Conceitos:
+**Conceitos:**
 - Risco, liquidez, tributação
 - Diversificação, reserva de emergência
 - Impostos (IR, come-cotas, isenções)
 
 Qual sua dúvida específica?`);
   }
-  
+
   if (input.includes('risco') || input.includes('seguro')) {
     return ensureCompleteResponse(`Gestão de risco nos investimentos:
 
-Baixo risco: Tesouro Selic, CDB, LCI/LCA
-Médio risco: FIIs, ETFs, ações de empresas grandes
-Alto risco: ações pequenas, criptomoedas
+**Baixo risco:** Tesouro Selic, CDB, LCI/LCA
+- Segurança máxima
+- Rentabilidade menor
+- Ideal para iniciantes
+
+**Médio risco:** FIIs, ETFs, ações de empresas grandes
+- Equilíbrio entre risco e retorno
+- Diversificação importante
+
+**Alto risco:** Ações pequenas, criptomoedas
+- Maior potencial de retorno
+- Volatilidade alta
+- Para perfil arrojado
 
 A diversificação reduz o risco total da carteira. Qual seu perfil de risco?`);
   }
   
+  // ========== PERGUNTAS GENÉRICAS ==========
+  if (input.includes('perfil') || input.includes('conservador') || input.includes('moderado') || input.includes('agressivo')) {
+    return ensureCompleteResponse(`Perfis de investidor:
+
+**Conservador:**
+- Foco em segurança e preservação
+- Renda fixa (Tesouro, CDB, LCI/LCA)
+- Baixa tolerância a risco
+
+**Moderado:**
+- Equilíbrio entre risco e retorno
+- Combinação de renda fixa e variável
+- Tolerância média a oscilações
+
+**Agressivo:**
+- Busca maior retorno
+- Maior exposição à renda variável
+- Tolerância alta a volatilidade
+
+Qual seu perfil? Isso ajuda a orientar melhor os investimentos.`);
+  }
+  
+  if (input.includes('diversificação') || input.includes('diversificar')) {
+    return ensureCompleteResponse(`Diversificação é distribuir investimentos em diferentes ativos para reduzir risco.
+
+**Como diversificar:**
+- Diferentes tipos de ativos (renda fixa + variável)
+- Diferentes setores (bancos, varejo, tecnologia)
+- Diferentes regiões (Brasil + exterior)
+- Diferentes prazos (curto, médio, longo)
+
+**Vantagens:**
+- Reduz risco total da carteira
+- Protege contra perdas concentradas
+- Permite aproveitar oportunidades
+
+**Dica:** Não coloque todos os ovos na mesma cesta!
+
+Quer ajuda para diversificar sua carteira?`);
+  }
+  
+  if (input.includes('tributação') || input.includes('imposto') || input.includes('ir')) {
+    return ensureCompleteResponse(`Tributação nos investimentos:
+
+**Renda Fixa:**
+- IR regressivo (15% a 22,5%)
+- Quanto mais tempo, menor o imposto
+- LCI/LCA: isentas de IR para PF
+
+**Renda Variável:**
+- Ações: isenção até R$ 20.000/mês em vendas
+- FIIs: isenção IR sobre dividendos mensais
+- ETFs: come-cotas (fundos)
+
+**Dica:**
+- Planeje para otimizar impostos
+- Use isenções quando possível
+- Considere o prazo para reduzir IR
+
+Quer entender melhor algum tipo específico?`);
+  }
+
+  // Resposta padrão para perguntas não cobertas
   return ensureCompleteResponse(`Posso ajudar com investimentos brasileiros como CDB, Tesouro, ações, FIIs e ETFs.
 
 Para te orientar melhor, me conte:
