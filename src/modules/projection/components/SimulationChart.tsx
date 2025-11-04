@@ -15,19 +15,33 @@ const {width: screenWidth} = Dimensions.get('window');
 const chartWidth = screenWidth - 48; // Padding lateral
 
 const ChartContainer = styled.View`
-  margin-bottom: ${({theme}) => theme.spacing.lg}px;
-`;
-
-const ChartTitle = styled.Text`
-  color: ${({theme}) => theme.colors.textDark};
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: ${({theme}) => theme.spacing.md}px;
-  font-family: ${({theme}) => theme.typography.h3.fontFamily};
+  margin-bottom: ${({theme}) => theme.spacing.xl}px;
 `;
 
 const ChartCard = styled(Card)`
   padding: ${({theme}) => theme.spacing.md}px;
+`;
+
+const ChartLegend = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  margin-top: ${({theme}) => theme.spacing.sm}px;
+  margin-bottom: ${({theme}) => theme.spacing.xs}px;
+`;
+
+const LegendDot = styled.View`
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background-color: #8B5CF6;
+  margin-right: ${({theme}) => theme.spacing.xs}px;
+`;
+
+const LegendText = styled.Text`
+  color: ${({theme}) => theme.colors.textSecondary};
+  font-size: 12px;
+  font-family: ${({theme}) => theme.typography.caption.fontFamily};
 `;
 
 const SimulationChart: React.FC<SimulationChartProps> = ({
@@ -81,7 +95,6 @@ const SimulationChart: React.FC<SimulationChartProps> = ({
 
   return (
     <ChartContainer>
-      <ChartTitle>Evolução do Patrimônio</ChartTitle>
       <ChartCard variant="elevated" padding>
         <LineChart
           data={chartData}
@@ -99,6 +112,10 @@ const SimulationChart: React.FC<SimulationChartProps> = ({
           withShadow={false}
           segments={4}
         />
+        <ChartLegend>
+          <LegendDot />
+          <LegendText>Evolução do Patrimônio</LegendText>
+        </ChartLegend>
       </ChartCard>
     </ChartContainer>
   );

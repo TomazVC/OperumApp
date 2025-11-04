@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useCallback} from 'react';
-import {View, ScrollView, RefreshControl} from 'react-native';
+import {View, ScrollView, RefreshControl, KeyboardAvoidingView, Platform} from 'react-native';
 import styled from 'styled-components/native';
 import {useNavigation} from '@react-navigation/native';
 import {Ionicons} from '@expo/vector-icons';
@@ -9,7 +9,12 @@ import {PortfolioItem} from '../../../shared/types';
 import {portfolioService} from '../../portfolio/services/portfolioService';
 import {portfolioSimulationService} from '../../portfolio/services/portfolioSimulationService';
 import FinancialSimulation from '../components/FinancialSimulation';
-import Container from '../../../shared/components/Container';
+import SimulationChart from '../components/SimulationChart';
+import {
+  calculateCompoundInterestWithMonthlyDeposits,
+  generateChartData,
+  SimulationParams,
+} from '../services/financialCalculationService';
 
 const ScreenContainer = styled.View`
   flex: 1;
@@ -17,19 +22,39 @@ const ScreenContainer = styled.View`
 `;
 
 const Header = styled.View`
+  height: 120px;
+  background-color: ${({theme}) => theme.colors.primary};
   flex-direction: row;
-  justify-content: space-between;
   align-items: center;
   padding: ${({theme}) => theme.spacing.lg}px;
-  background-color: ${({theme}) => theme.colors.surface};
-  ${({theme}) => theme.shadows.sm}
+  padding-top: 50px;
+`;
+
+const HeaderContent = styled.View`
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+`;
+
+const BackButton = styled.TouchableOpacity`
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.2);
+  align-items: center;
+  justify-content: center;
+  margin-right: ${({theme}) => theme.spacing.md}px;
 `;
 
 const Title = styled.Text`
-  color: ${({theme}) => theme.colors.textDark};
+  color: ${({theme}) => theme.colors.textLight};
   font-size: 24px;
   font-weight: 700;
   font-family: ${({theme}) => theme.typography.h2.fontFamily};
+`;
+
+const Content = styled(ScrollView)`
+  flex: 1;
 `;
 
 const LoadingContainer = styled.View`
@@ -59,10 +84,6 @@ const ErrorText = styled.Text`
   margin-top: ${({theme}) => theme.spacing.md}px;
   text-align: center;
   font-family: ${({theme}) => theme.typography.body.fontFamily};
-`;
-
-const Content = styled(ScrollView)`
-  flex: 1;
 `;
 
 const ProjectionScreen: React.FC = () => {
@@ -130,12 +151,20 @@ const ProjectionScreen: React.FC = () => {
     setRefreshing(false);
   }, [loadPortfolioData]);
 
+  const handleBack = () => {
+    navigation.goBack();
+  };
 
   if (isLoading) {
     return (
       <ScreenContainer>
         <Header>
-          <Title>Projeção Financeira</Title>
+          <HeaderContent>
+            <BackButton onPress={handleBack}>
+              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+            </BackButton>
+            <Title>Projeção Financeira</Title>
+          </HeaderContent>
         </Header>
         <LoadingContainer>
           <Ionicons name="trending-up-outline" size={48} color="#8B5CF6" />
@@ -149,7 +178,12 @@ const ProjectionScreen: React.FC = () => {
     return (
       <ScreenContainer>
         <Header>
-          <Title>Projeção Financeira</Title>
+          <HeaderContent>
+            <BackButton onPress={handleBack}>
+              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+            </BackButton>
+            <Title>Projeção Financeira</Title>
+          </HeaderContent>
         </Header>
         <ErrorContainer>
           <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
@@ -162,9 +196,27 @@ const ProjectionScreen: React.FC = () => {
   return (
     <ScreenContainer>
       <Header>
-        <Title>Projeção Financeira</Title>
+        <HeaderContent>
+          <BackButton onPress={handleBack}>
+            <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+          </BackButton>
+          <Title>Projeção Financeira</Title>
+        </HeaderContent>
       </Header>
-      <FinancialSimulation portfolioExpectedReturn={expectedReturn} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{flex: 1}}>
+        <Content
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          showsVerticalScrollIndicator={false}>
+          <FinancialSimulation
+            portfolioExpectedReturn={expectedReturn}
+            renderChartFirst={true}
+          />
+        </Content>
+      </KeyboardAvoidingView>
     </ScreenContainer>
   );
 };
