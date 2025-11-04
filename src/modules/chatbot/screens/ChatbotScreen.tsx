@@ -7,7 +7,6 @@ import {RootStackNavigationProp} from '../../../core/navigation/types';
 import {ChatMessage} from '../../../shared/types';
 import {chatbotService} from '../services/chatbotService';
 import {useAuth} from '../../../shared/hooks/useAuth';
-import Container from '../../../shared/components/Container';
 
 // Header
 const HeaderContainer = styled.View`
@@ -51,7 +50,7 @@ const HeaderSubtitle = styled.Text`
 
 
 // Container principal
-const ScreenContainer = styled.View`
+const MainContainer = styled.View`
   flex: 1;
   background-color: ${({theme}) => theme.colors.background};
 `;
@@ -245,7 +244,7 @@ const ChatbotScreen: React.FC = () => {
   );
 
   return (
-    <Container>
+    <MainContainer>
       <HeaderContainer>
         <HeaderContent>
           <BackButton onPress={handleBack}>
@@ -258,7 +257,7 @@ const ChatbotScreen: React.FC = () => {
         </HeaderContent>
       </HeaderContainer>
       
-      <ScreenContainer>
+      <View style={{flex: 1}}>
         <MessagesContainer>
           <FlatList
             ref={flatListRef}
@@ -293,8 +292,8 @@ const ChatbotScreen: React.FC = () => {
             </SendButton>
           </InputContainer>
         </KeyboardAvoidingView>
-      </ScreenContainer>
-    </Container>
+      </View>
+    </MainContainer>
   );
 };
 
