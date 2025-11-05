@@ -184,6 +184,47 @@ export const openDatabase = (): SQLite.SQLiteDatabase => {
           webCache[params[0]] = { value: params[1], updatedAt: params[2] };
           saveToLocalStorage();
           return { lastInsertRowId: 0 };
+        } else if (sql.includes('UPDATE users SET')) {
+          const userId = params[params.length - 1]; // userId é o último parâmetro
+          const userIndex = webUsers.findIndex(u => u.id === userId);
+          
+          if (userIndex !== -1) {
+            // Parsear os campos do SQL UPDATE
+            const setClause = sql.match(/SET (.+?) WHERE/)?.[1] || '';
+            const fields = setClause.split(',').map(f => f.trim().split('=')[0].trim());
+            
+            // Atualizar campos baseado na posição dos parâmetros
+            let paramIndex = 0;
+            fields.forEach(field => {
+              if (field === 'name' && params[paramIndex] !== undefined) {
+                webUsers[userIndex].name = params[paramIndex];
+                paramIndex++;
+              } else if (field === 'email' && params[paramIndex] !== undefined) {
+                webUsers[userIndex].email = params[paramIndex];
+                paramIndex++;
+              } else if (field === 'cpf' && params[paramIndex] !== undefined) {
+                webUsers[userIndex].cpf = params[paramIndex];
+                paramIndex++;
+              } else if (field === 'phone' && params[paramIndex] !== undefined) {
+                webUsers[userIndex].phone = params[paramIndex];
+                paramIndex++;
+              } else if (field === 'riskProfile' && params[paramIndex] !== undefined) {
+                webUsers[userIndex].riskProfile = params[paramIndex];
+                paramIndex++;
+              } else if (field === 'passwordHash' && params[paramIndex] !== undefined) {
+                webUsers[userIndex].passwordHash = params[paramIndex];
+                paramIndex++;
+              } else if (field === 'salt' && params[paramIndex] !== undefined) {
+                webUsers[userIndex].salt = params[paramIndex];
+                paramIndex++;
+              } else {
+                paramIndex++;
+              }
+            });
+            
+            saveToLocalStorage();
+          }
+          return { lastInsertRowId: 0 };
         } else if (sql.includes('DELETE FROM')) {
           if (sql.includes('users')) {
             const userId = params[0];
@@ -198,7 +239,14 @@ export const openDatabase = (): SQLite.SQLiteDatabase => {
       getFirstSync: (sql: string, params: any[] = []) => {
         console.log('🔍 WEB DB getFirstSync:', { sql: sql.substring(0, 50) + '...', params });
         
-        if (sql.includes('SELECT * FROM users WHERE email')) {
+        if (sql.includes('SELECT * FROM users WHERE id')) {
+          const user = webUsers.find(u => u.id === params[0]) || null;
+          console.log('👤 WEB DB: Buscando usuário por ID:', {
+            id: params[0],
+            found: !!user
+          });
+          return user;
+        } else if (sql.includes('SELECT * FROM users WHERE email')) {
           console.log('🔍 Buscando usuário por email:', params[0]);
           console.log('📊 Estado atual de webUsers:', {
             length: webUsers.length,
@@ -305,6 +353,11 @@ export const setupDatabase = (): void => {
     } catch (e) {
       // Coluna já existe, ignorar
     }
+    try {
+      database.runSync(`ALTER TABLE users ADD COLUMN phone TEXT;`);
+    } catch (e) {
+      // Coluna já existe, ignorar
+    }
 
     // simple persistent cache for quotes/macro values
     database.runSync(`
@@ -349,6 +402,7 @@ export interface User {
   cpf: string;
   name: string;
   email?: string;
+  phone?: string;
   passwordHash?: string;
   salt?: string;
   riskProfile?: string;
@@ -439,6 +493,21 @@ export const getUserByCPF = (cpf: string): User | null => {
   }
 };
 
+export const getUserById = (userId: number): User | null => {
+  const database = openDatabase();
+  
+  try {
+    const result = database.getFirstSync(
+      'SELECT * FROM users WHERE id = ?',
+      [userId]
+    );
+    return result || null;
+  } catch (error) {
+    console.error('Error getting user by id:', error);
+    return null;
+  }
+};
+
 export const getUserByEmail = (email: string): User | null => {
   console.log('🔍 getUserByEmail chamado com email:', email);
   console.log('🔍 Platform.OS:', Platform.OS);
@@ -473,12 +542,14 @@ export const getUserByEmail = (email: string): User | null => {
   }
 };
 
-export const updateUser = (userId: number, data: Partial<Pick<User, 'name' | 'email' | 'riskProfile'>>): void => {
+export const updateUser = (userId: number, data: Partial<Pick<User, 'name' | 'email' | 'cpf' | 'phone' | 'riskProfile'>>): void => {
   const database = openDatabase();
   const fields: string[] = [];
   const values: any[] = [];
   if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name); }
   if (data.email !== undefined) { fields.push('email = ?'); values.push(data.email); }
+  if (data.cpf !== undefined) { fields.push('cpf = ?'); values.push(data.cpf); }
+  if (data.phone !== undefined) { fields.push('phone = ?'); values.push(data.phone); }
   if (data.riskProfile !== undefined) { fields.push('riskProfile = ?'); values.push(data.riskProfile); }
   if (fields.length === 0) return;
   values.push(userId);
@@ -490,6 +561,20 @@ export const updateUser = (userId: number, data: Partial<Pick<User, 'name' | 'em
     );
   } catch (error) {
     console.error('Error updating user:', error);
+    throw error;
+  }
+};
+
+export const updateUserPassword = (userId: number, passwordHash: string, salt: string): void => {
+  const database = openDatabase();
+  
+  try {
+    database.runSync(
+      `UPDATE users SET passwordHash = ?, salt = ? WHERE id = ?`,
+      [passwordHash, salt, userId]
+    );
+  } catch (error) {
+    console.error('Error updating user password:', error);
     throw error;
   }
 };

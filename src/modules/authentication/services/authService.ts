@@ -132,8 +132,15 @@ export const authService = {
     return user;
   },
 
-  async update(userId: number, data: Partial<Pick<User, 'name' | 'email' | 'riskProfile'>>): Promise<void> {
+  async update(userId: number, data: Partial<Pick<User, 'name' | 'email' | 'cpf' | 'phone' | 'riskProfile'>>): Promise<void> {
     await updateUser(userId, data);
+  },
+
+  async updatePassword(userId: number, password: string): Promise<void> {
+    const salt = String(Date.now());
+    const passwordHash = await hashPassword(password, salt);
+    const {updateUserPassword} = await import('../../../core/database');
+    await updateUserPassword(userId, passwordHash, salt);
   },
 
   async delete(userId: number): Promise<void> {
