@@ -2,7 +2,7 @@ import axios, {AxiosInstance, AxiosResponse} from 'axios';
 import {MarketData} from '../../shared/types';
 
 // Configuração da API AwesomeAPI
-const BASE_URL = 'https://economia.awesomeapi.com.br';
+const BASE_URL = '                                                                                                                                                                                        ';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 // Instância do axios configurada
@@ -65,13 +65,13 @@ export const getDollarQuote = async (): Promise<{value: number; change: number; 
   if (cached) return cached;
 
   try {
-    const response = await api.get<CurrencyResponse[]>('/json/last/USD-BRL');
+    const response = await api.get('/json/last/USD-BRL');
     
-    if (!response.data || response.data.length === 0) {
+    if (!response.data || !response.data.USDBRL) {
       throw new Error('Dados do dólar não encontrados');
     }
 
-    const data = response.data[0];
+    const data = response.data.USDBRL;
     const result = {
       value: parseFloat(data.bid) || 0,
       change: parseFloat(data.varBid) || 0,
@@ -93,21 +93,9 @@ export const getIbovespaQuote = async (): Promise<{value: number; change: number
   if (cached) return cached;
 
   try {
-    const response = await api.get<CurrencyResponse[]>('/json/last/IBOV');
-    
-    if (!response.data || response.data.length === 0) {
-      throw new Error('Dados do Ibovespa não encontrados');
-    }
-
-    const data = response.data[0];
-    const result = {
-      value: parseFloat(data.bid) || 0,
-      change: parseFloat(data.varBid) || 0,
-      changePercent: parseFloat(data.pctChange) || 0,
-    };
-
-    setCachedData(cacheKey, result);
-    return result;
+    // A AwesomeAPI não tem Ibovespa, vamos tentar com outros índices disponíveis
+    // Por enquanto, vamos usar dados mockados
+    throw new Error('Ibovespa não disponível na AwesomeAPI');
   } catch (error) {
     console.warn('Erro ao buscar cotação do Ibovespa via AwesomeAPI, usando dados mockados');
     return generateMockIbovespaQuote();
@@ -121,18 +109,89 @@ export const getSelicRate = async (): Promise<number> => {
   if (cached) return cached;
 
   try {
-    const response = await api.get<SelicResponse>('/selic');
-    
-    if (!response.data || !response.data.value) {
-      throw new Error('Dados da Selic não encontrados');
-    }
-
-    const result = parseFloat(response.data.value) || 0;
-    setCachedData(cacheKey, result);
-    return result;
+    // A AwesomeAPI não tem endpoint direto para Selic
+    // Vamos usar dados mockados por enquanto
+    throw new Error('Selic não disponível na AwesomeAPI');
   } catch (error) {
     console.warn('Erro ao buscar taxa Selic via AwesomeAPI, usando dados mockados');
     return generateMockSelicRate();
+  }
+};
+
+// Função para buscar Euro
+export const getEuroQuote = async (): Promise<{value: number; change: number; changePercent: number}> => {
+  const cacheKey = 'euro_quote';
+  const cached = getCachedData<{value: number; change: number; changePercent: number}>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const response = await api.get('/json/last/EUR-BRL');
+    
+    if (!response.data || !response.data.EURBRL) {
+      throw new Error('Dados do Euro não encontrados');
+    }
+
+    const data = response.data.EURBRL;
+    const result = {
+      value: parseFloat(data.bid) || 0,
+      change: parseFloat(data.varBid) || 0,
+      changePercent: parseFloat(data.pctChange) || 0,
+    };
+
+    setCachedData(cacheKey, result);
+    return result;
+  } catch (error) {
+    console.warn('Erro ao buscar cotação do Euro via AwesomeAPI, usando dados mockados');
+    return generateMockEuroQuote();
+  }
+};
+
+// Função para buscar Bitcoin
+export const getBitcoinQuote = async (): Promise<{value: number; change: number; changePercent: number}> => {
+  const cacheKey = 'bitcoin_quote';
+  const cached = getCachedData<{value: number; change: number; changePercent: number}>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const response = await api.get('/json/last/BTC-BRL');
+    
+    if (!response.data || !response.data.BTCBRL) {
+      throw new Error('Dados do Bitcoin não encontrados');
+    }
+
+    const data = response.data.BTCBRL;
+    const result = {
+      value: parseFloat(data.bid) || 0,
+      change: parseFloat(data.varBid) || 0,
+      changePercent: parseFloat(data.pctChange) || 0,
+    };
+
+    setCachedData(cacheKey, result);
+    return result;
+  } catch (error) {
+    console.warn('Erro ao buscar cotação do Bitcoin via AwesomeAPI, usando dados mockados');
+    return generateMockBitcoinQuote();
+  }
+};
+
+// Função para buscar múltiplas moedas
+export const getMultipleCurrencies = async (currencies: string[] = ['USD-BRL', 'EUR-BRL', 'GBP-BRL']): Promise<any> => {
+  const cacheKey = `multiple_currencies_${currencies.join(',')}`;
+  const cached = getCachedData<any>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const response = await api.get(`/json/last/${currencies.join(',')}`);
+    
+    if (!response.data) {
+      throw new Error('Dados das moedas não encontrados');
+    }
+
+    setCachedData(cacheKey, response.data);
+    return response.data;
+  } catch (error) {
+    console.warn('Erro ao buscar múltiplas moedas via AwesomeAPI, usando dados mockados');
+    return generateMockMultipleCurrencies();
   }
 };
 
@@ -186,6 +245,47 @@ const generateMockDollarQuote = (): {value: number; change: number; changePercen
   };
 };
 
+const generateMockEuroQuote = (): {value: number; change: number; changePercent: number} => {
+  const baseValue = 6.0 + Math.random() * 0.5;
+  const change = (Math.random() - 0.5) * 0.2;
+  return {
+    value: Number(baseValue.toFixed(2)),
+    change: Number(change.toFixed(2)),
+    changePercent: Number(((change / baseValue) * 100).toFixed(2)),
+  };
+};
+
+const generateMockBitcoinQuote = (): {value: number; change: number; changePercent: number} => {
+  const baseValue = 500000 + Math.random() * 100000;
+  const change = (Math.random() - 0.5) * 20000;
+  return {
+    value: Number(baseValue.toFixed(2)),
+    change: Number(change.toFixed(2)),
+    changePercent: Number(((change / baseValue) * 100).toFixed(2)),
+  };
+};
+
+const generateMockMultipleCurrencies = () => ({
+  USDBRL: {
+    code: 'USD',
+    codein: 'BRL',
+    name: 'Dólar Americano/Real Brasileiro',
+    bid: '5.35',
+    ask: '5.36',
+    varBid: '0.01',
+    pctChange: '0.18',
+  },
+  EURBRL: {
+    code: 'EUR',
+    codein: 'BRL',
+    name: 'Euro/Real Brasileiro',
+    bid: '6.20',
+    ask: '6.21',
+    varBid: '0.02',
+    pctChange: '0.32',
+  },
+});
+
 const generateMockIbovespaQuote = (): {value: number; change: number; changePercent: number} => {
   const baseValue = 120000 + Math.random() * 10000;
   const change = (Math.random() - 0.5) * 2000;
@@ -220,7 +320,10 @@ const generateMockMarketData = (): MarketData => ({
 
 export default {
   getDollarQuote,
+  getEuroQuote,
+  getBitcoinQuote,
   getIbovespaQuote,
   getSelicRate,
+  getMultipleCurrencies,
   getMacroIndicators,
 };
