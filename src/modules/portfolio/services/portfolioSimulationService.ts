@@ -130,6 +130,9 @@ const ASSET_CATALOG: RecommendedAsset[] = [
   },
 ];
 
+// Cache em memória com o conjunto mais recente de ativos carregados dinamicamente
+let allAssetsCache: RecommendedAsset[] = [];
+
 // Mapeamento de categoria para assetType (compatibilidade)
 const CATEGORY_TO_ASSET_TYPE: Record<AssetCategory, string> = {
   'Renda Fixa': 'Renda Fixa',
@@ -243,7 +246,26 @@ export const portfolioSimulationService = {
   },
 
   getAssetByName(name: string): RecommendedAsset | undefined {
-    return ASSET_CATALOG.find(asset => asset.name === name);
+    if (!name) return undefined;
+
+    // Busca exata no catálogo estático
+    const fromStatic = ASSET_CATALOG.find(asset => asset.name === name);
+    if (fromStatic) return fromStatic;
+
+    // Busca case-insensitive no cache dinâmico
+    const lower = name.toLowerCase();
+    const fromCache = allAssetsCache.find(a => a.name.toLowerCase() === lower);
+    if (fromCache) return fromCache;
+
+    // Fallback seguro: permitir inserção de qualquer ticker/ativo
+    return {
+      name,
+      category: 'Renda Variável',
+      risk: 'Médio',
+      liquidity: 'Alta',
+      expectedReturn: 10,
+      justification: 'Ativo adicionado manualmente.'
+    } as RecommendedAsset;
   },
 
   // Buscar ativos dinamicamente da Brapi
@@ -310,6 +332,8 @@ export const portfolioSimulationService = {
       assets.push(...ASSET_CATALOG);
     }
 
+    // Atualiza cache global com o conjunto mais recente
+    allAssetsCache = assets;
     return assets;
   },
 

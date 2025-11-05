@@ -175,7 +175,11 @@ export const openDatabase = (): SQLite.SQLiteDatabase => {
             assetName: params[1],
             assetType: params[2],
             amount: params[3],
-            isDemo: params[4]
+            isDemo: params[4],
+            quantity: params[5],
+            unitPrice: params[6],
+            expectedReturn: params[7],
+            createdAt: new Date().toISOString()
           };
           webPortfolios.push(item);
           saveToLocalStorage();
