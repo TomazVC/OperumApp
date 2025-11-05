@@ -2,8 +2,8 @@
 
 **Data:** 03 de Novembro de 2025  
 **Tokens testados:** 
-- `REDACTED` (Token principal - RECOMENDADO)
-- `REDACTED` (Token alternativo - mesma cobertura)
+- `fQZNiALmLqMRjjeypszzpa` (Token principal - RECOMENDADO)
+- `83ggNqPt65fEAYG7EhrWEr` (Token alternativo - mesma cobertura)
 
 ---
 
@@ -250,7 +250,7 @@ const historical = await brapiService.getPrimeRate('brazil', {
 
 ## 📋 Comparação dos Tokens
 
-| Recurso | REDACTED | REDACTED |
+| Recurso | fQZNiALmLqMRjjeypszzpa | 83ggNqPt65fEAYG7EhrWEr |
 |---------|------------------------|------------------------|
 | **AÇÕES DE TESTE (sem token)** | | |
 | PETR4/MGLU3/VALE3/ITUB4 básico | ✅ Sim | ✅ Sim |
@@ -300,7 +300,7 @@ const historical = await brapiService.getPrimeRate('brazil', {
 
 ### Token a usar:
 ```typescript
-const API_TOKEN = 'REDACTED'; // Ambos têm mesmo acesso
+const API_TOKEN = 'fQZNiALmLqMRjjeypszzpa'; // Ambos têm mesmo acesso
 ```
 
 ### Arquitetura sugerida:

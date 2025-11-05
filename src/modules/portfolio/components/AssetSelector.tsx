@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useMemo, useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import styled from 'styled-components/native';
 import {Ionicons} from '@expo/vector-icons';
@@ -269,7 +270,35 @@ const AssetSelector: React.FC<AssetSelectorProps> = ({
   const [sortAsc, setSortAsc] = useState<boolean>(false);
   const hasActiveFilters = !!(riskFilter || liquidityFilter || sortKey);
 
-  const allAssets = portfolioSimulationService.getAllAssets();
+  // Estado para ativos e loading
+  const [allAssets, setAllAssets] = useState<RecommendedAsset[]>([]);
+  const [loadingAssets, setLoadingAssets] = useState(false);
+
+  // Carregar ativos dinamicamente quando o modal for aberto
+  useEffect(() => {
+    const loadAssets = async () => {
+      if (!visible) return;
+      
+      setLoadingAssets(true);
+      try {
+        // Buscar ativos combinados (estáticos + dinâmicos da Brapi)
+        const assets = await portfolioSimulationService.getAllAssetsCombined({
+          includeStatic: true,
+          includeBrapi: true,
+          limit: 200, // Buscar até 200 ativos da Brapi
+        });
+        setAllAssets(assets);
+      } catch (error) {
+        console.error('Erro ao carregar ativos:', error);
+        // Fallback para catálogo estático em caso de erro
+        setAllAssets(portfolioSimulationService.getAllAssets());
+      } finally {
+        setLoadingAssets(false);
+      }
+    };
+
+    loadAssets();
+  }, [visible]);
 
   const filteredAssets = useMemo(() => {
     const base = allAssets.filter(asset => {
@@ -439,7 +468,25 @@ const AssetSelector: React.FC<AssetSelectorProps> = ({
                 </FiltersContainer>
 
                 <View style={{marginTop: 8}}>
-                  {filteredAssets.map((asset, index) => (
+                  {loadingAssets ? (
+                    <View style={{padding: 40, alignItems: 'center', justifyContent: 'center'}}>
+                      <ActivityIndicator size="large" color="#8B5CF6" />
+                      <Text style={{marginTop: 16, color: '#6B7280', fontSize: 14}}>
+                        Carregando ativos...
+                      </Text>
+                    </View>
+                  ) : filteredAssets.length === 0 ? (
+                    <View style={{padding: 40, alignItems: 'center', justifyContent: 'center'}}>
+                      <Ionicons name="search-outline" size={48} color="#9CA3AF" />
+                      <Text style={{marginTop: 16, color: '#6B7280', fontSize: 14, textAlign: 'center'}}>
+                        Nenhum ativo encontrado
+                      </Text>
+                      <Text style={{marginTop: 8, color: '#9CA3AF', fontSize: 12, textAlign: 'center'}}>
+                        Tente ajustar os filtros ou busca
+                      </Text>
+                    </View>
+                  ) : (
+                    filteredAssets.map((asset, index) => (
                     <AssetItem
                       key={index}
                       variant="elevated"
@@ -469,7 +516,8 @@ const AssetSelector: React.FC<AssetSelectorProps> = ({
                         </DetailItem>
                       </AssetDetails>
                     </AssetItem>
-                  ))}
+                    ))
+                  )}
                 </View>
               </ContentScroll>
             </>

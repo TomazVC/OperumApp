@@ -6,7 +6,7 @@ import {StockQuote} from '../../shared/types';
  * 
  * Com token, você tem acesso a TODAS as ações da B3, FIIs, BDRs, ETFs e Índices!
  * 
- * Token: REDACTED
+ * Token: 83ggNqPt65fEAYG7EhrWEr
  * 
  * Recursos Disponíveis:
  * - Cotações de TODAS as ações, FIIs, BDRs, ETFs da B3
@@ -43,7 +43,7 @@ import {StockQuote} from '../../shared/types';
 
 // Configuração da API Brapi.dev
 const BASE_URL = 'https://brapi.dev/api';
-const API_TOKEN = 'REDACTED'; // Token principal (mesmo acesso que REDACTED)
+const API_TOKEN = 'fQZNiALmLqMRjjeypszzpa'; // Token principal (mesmo acesso que 83ggNqPt65fEAYG7EhrWEr)
 
 /**
  * RECURSOS DISPONÍVEIS COM ESTE TOKEN (Plano Básico):

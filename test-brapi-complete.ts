@@ -3,7 +3,7 @@
  * 
  * Testa todos os endpoints mais importantes disponíveis no plano Basic
  * Foco: Brasil (país padrão)
- * Token: REDACTED
+ * Token: fQZNiALmLqMRjjeypszzpa
  * 
  * Data: 03/11/2025
  */

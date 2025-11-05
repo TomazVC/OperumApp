@@ -1,7 +1,7 @@
 # 📈 AÇÕES - BRAPI API (Plano Basic)
 
 **Data:** 03 de Novembro de 2025  
-**Token:** REDACTED (ou REDACTED - idênticos)
+**Token:** fQZNiALmLqMRjjeypszzpa (ou 83ggNqPt65fEAYG7EhrWEr - idênticos)
 
 ---
 

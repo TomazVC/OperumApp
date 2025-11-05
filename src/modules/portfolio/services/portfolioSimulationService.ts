@@ -9,6 +9,7 @@ import {
   PortfolioItem,
 } from '../../../shared/types';
 import {portfolioService} from './portfolioService';
+import brapiService from '../../../core/api/brapiService';
 
 // Catálogo de ativos (mock em memória)
 const ASSET_CATALOG: RecommendedAsset[] = [
@@ -162,6 +163,75 @@ const PROFILE_RECOMMENDATIONS: Record<RiskProfile, string[]> = {
   Agressivo: ['Fundo de Ações', 'PETR4', 'VALE3', 'ITUB4', 'FII HGLG11', 'ETF BOVA11'],
 };
 
+// Função para mapear dados da Brapi para RecommendedAsset
+function mapBrapiStockToRecommendedAsset(brapiStock: any): RecommendedAsset {
+  // Mapear categoria baseado no tipo
+  let category: AssetCategory;
+  if (brapiStock.type === 'fund') {
+    category = 'Fundos';
+  } else if (brapiStock.type === 'stock' || brapiStock.type === 'bdr') {
+    category = 'Renda Variável';
+  } else {
+    category = 'Renda Variável'; // Default
+  }
+
+  // Inferir liquidez baseado no volume
+  let liquidity: AssetLiquidity;
+  const volume = brapiStock.volume || 0;
+  if (volume > 100000000) { // Mais de 100 milhões
+    liquidity = 'Alta';
+  } else if (volume > 10000000) { // Mais de 10 milhões
+    liquidity = 'Média';
+  } else {
+    liquidity = 'Baixa';
+  }
+
+  // Inferir risco baseado em volatilidade (change) e volume
+  let risk: AssetRisk;
+  const changePercent = Math.abs(brapiStock.change || 0);
+  const hasHighVolume = volume > 50000000;
+  
+  if (changePercent > 5 && !hasHighVolume) {
+    risk = 'Alto';
+  } else if (changePercent > 2 || !hasHighVolume) {
+    risk = 'Médio';
+  } else {
+    risk = 'Baixo';
+  }
+
+  // Estimar expectedReturn baseado em:
+  // - Média histórica de ações brasileiras: ~10-15%
+  // - Ajustar baseado no setor e volume
+  let expectedReturn = 12.0; // Base
+  if (brapiStock.type === 'fund') {
+    expectedReturn = 10.5; // FIIs geralmente têm retorno mais conservador
+  } else if (hasHighVolume && brapiStock.market_cap && brapiStock.market_cap > 10000000000) {
+    expectedReturn = 13.5; // Grandes empresas com alta liquidez
+  }
+
+  // Gerar justificativa baseada nos dados
+  const marketCapText = brapiStock.market_cap 
+    ? `Valor de mercado de R$ ${(brapiStock.market_cap / 1000000000).toFixed(1)} bilhões. `
+    : '';
+  const sectorText = brapiStock.sector ? `Setor: ${brapiStock.sector}. ` : '';
+  const typeText = brapiStock.type === 'fund' 
+    ? 'Fundo imobiliário que oferece renda mensal isenta de IR. '
+    : brapiStock.type === 'bdr'
+    ? 'BDR (Brazilian Depositary Receipt) que representa ações de empresas estrangeiras. '
+    : 'Ação negociada na B3. ';
+  
+  const justification = `${typeText}${marketCapText}${sectorText}${liquidity === 'Alta' ? 'Alta liquidez no mercado.' : 'Liquidez moderada.'}`.trim();
+
+  return {
+    name: brapiStock.stock,
+    category,
+    risk,
+    liquidity,
+    expectedReturn,
+    justification,
+  };
+}
+
 export const portfolioSimulationService = {
   // Catálogo de ativos
   getAllAssets(): RecommendedAsset[] {
@@ -174,6 +244,73 @@ export const portfolioSimulationService = {
 
   getAssetByName(name: string): RecommendedAsset | undefined {
     return ASSET_CATALOG.find(asset => asset.name === name);
+  },
+
+  // Buscar ativos dinamicamente da Brapi
+  async getAssetsFromBrapi(options?: {
+    type?: 'stock' | 'fund' | 'bdr';
+    search?: string;
+    limit?: number;
+  }): Promise<RecommendedAsset[]> {
+    try {
+      const response = await brapiService.getStockList({
+        type: options?.type,
+        search: options?.search,
+        limit: options?.limit || 100,
+        sortBy: 'volume',
+        sortOrder: 'desc',
+      });
+
+      if (!response.stocks || !Array.isArray(response.stocks)) {
+        return [];
+      }
+
+      // Mapear cada ação da Brapi para RecommendedAsset
+      return response.stocks.map(mapBrapiStockToRecommendedAsset);
+    } catch (error) {
+      console.error('Erro ao buscar ativos da Brapi:', error);
+      // Retornar array vazio em caso de erro
+      return [];
+    }
+  },
+
+  // Função combinada: Retorna catálogo estático + ativos dinâmicos
+  async getAllAssetsCombined(options?: {
+    includeStatic?: boolean;
+    includeBrapi?: boolean;
+    brapiType?: 'stock' | 'fund' | 'bdr';
+    limit?: number;
+  }): Promise<RecommendedAsset[]> {
+    const assets: RecommendedAsset[] = [];
+
+    // Adicionar catálogo estático (Renda Fixa)
+    if (options?.includeStatic !== false) {
+      assets.push(...ASSET_CATALOG.filter(a => a.category === 'Renda Fixa'));
+    }
+
+    // Adicionar ativos da Brapi (Renda Variável e Fundos)
+    if (options?.includeBrapi !== false) {
+      try {
+        const brapiAssets = await this.getAssetsFromBrapi({
+          type: options?.brapiType,
+          limit: options?.limit || 200,
+        });
+        assets.push(...brapiAssets);
+      } catch (error) {
+        console.warn('Falha ao buscar ativos da Brapi, usando apenas catálogo estático');
+        // Adicionar ativos estáticos de Renda Variável como fallback
+        if (options?.includeStatic !== false) {
+          assets.push(...ASSET_CATALOG.filter(a => 
+            a.category === 'Renda Variável' || a.category === 'Fundos'
+          ));
+        }
+      }
+    } else if (options?.includeStatic !== false) {
+      // Se não incluir Brapi, adicionar todos os ativos estáticos
+      assets.push(...ASSET_CATALOG);
+    }
+
+    return assets;
   },
 
   // Recomendações baseadas em perfil

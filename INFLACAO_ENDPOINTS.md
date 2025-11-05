@@ -1,7 +1,7 @@
 # 📊 ENDPOINTS DE INFLAÇÃO - BRAPI API
 
 **Data:** 03 de Novembro de 2025  
-**Token:** `REDACTED` (Plano Básico)
+**Token:** `fQZNiALmLqMRjjeypszzpa` (Plano Básico)
 
 ---
 
@@ -38,7 +38,7 @@
 
 #### Exemplo de Requisição:
 ```bash
-curl -H "Authorization: Bearer REDACTED" \
+curl -H "Authorization: Bearer fQZNiALmLqMRjjeypszzpa" \
   "https://brapi.dev/api/v2/inflation/available"
 ```
 
@@ -79,7 +79,7 @@ const filtered = await brapiService.getAvailableInflationCountries('braz');
 
 #### Exemplo de Requisição:
 ```bash
-curl -H "Authorization: Bearer REDACTED" \
+curl -H "Authorization: Bearer fQZNiALmLqMRjjeypszzpa" \
   "https://brapi.dev/api/v2/inflation?country=brazil&start=01/01/2022&end=31/12/2022"
 ```
 

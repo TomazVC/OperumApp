@@ -2,7 +2,7 @@
 
 **Data:** 03 de Novembro de 2025  
 **Total de fundos:** 555 FIIs (Fundos Imobiliários)  
-**Token:** REDACTED
+**Token:** fQZNiALmLqMRjjeypszzpa
 
 ---
 
