@@ -1,3 +1,34 @@
+## Secrets and Gemini Proxy
+
+This app no longer ships any Google/Gemini API key to the client. All Gemini calls are proxied via a small server in `server/`.
+
+Setup:
+
+1. Copy `server/env.example` to `server/.env` and set `GEMINI_API_KEY`.
+2. Copy `env.example` to `.env` (or use your environment) and set `API_BASE_URL` to your server URL.
+3. Install deps and run the proxy:
+
+```bash
+npm install
+npm run server:start
+```
+
+On mobile, ensure your device can reach `API_BASE_URL` (use your LAN IP instead of localhost when needed).
+
+### Brapi Token
+
+Set the Brapi token via env only:
+
+```
+# server/.env (if your proxy will call Brapi)
+BRAPI_API_TOKEN=your_token
+
+# .env (optional client mirror)
+BRAPI_API_TOKEN=
+```
+
+The file `src/core/api/brapiService.ts` now reads `process.env.BRAPI_API_TOKEN` and warns if missing. Do not hardcode tokens in the repo.
+
 Readme inicial:
 
 # Operum - Assessor Virtual de Investimentos

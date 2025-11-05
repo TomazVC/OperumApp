@@ -6,7 +6,7 @@ import {StockQuote} from '../../shared/types';
  * 
  * Com token, você tem acesso a TODAS as ações da B3, FIIs, BDRs, ETFs e Índices!
  * 
- * Token: 83ggNqPt65fEAYG7EhrWEr
+ * Token: Configure via variável de ambiente BRAPI_API_TOKEN (não cometer no repo)
  * 
  * Recursos Disponíveis:
  * - Cotações de TODAS as ações, FIIs, BDRs, ETFs da B3
@@ -43,7 +43,7 @@ import {StockQuote} from '../../shared/types';
 
 // Configuração da API Brapi.dev
 const BASE_URL = 'https://brapi.dev/api';
-const API_TOKEN = 'fQZNiALmLqMRjjeypszzpa'; // Token principal (mesmo acesso que 83ggNqPt65fEAYG7EhrWEr)
+const API_TOKEN = process.env.BRAPI_API_TOKEN || '';
 
 /**
  * RECURSOS DISPONÍVEIS COM ESTE TOKEN (Plano Básico):
@@ -102,9 +102,13 @@ const api: AxiosInstance = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${API_TOKEN}`, // Token no header (método recomendado)
+    'Authorization': API_TOKEN ? `Bearer ${API_TOKEN}` : '', // Token no header (método recomendado)
   },
 });
+
+if (!API_TOKEN) {
+  console.warn('[Brapi] BRAPI_API_TOKEN não definido. Recursos autenticados podem falhar.');
+}
 
 // Cache simples para evitar muitas requisições
 const cache = new Map<string, {data: any; timestamp: number}>();
@@ -922,5 +926,4 @@ export default {
   
   // ===== Constantes =====
   FREE_TEST_STOCKS,
-  API_TOKEN,
 };

@@ -1,12 +1,14 @@
-// Variáveis de ambiente - usar diretamente para evitar problemas com react-native-dotenv
+// Configurações de ambiente para o app (NUNCA coloque segredos aqui)
+// Em apps móveis, segredos não podem ficar no cliente. O acesso ao Gemini
+// deve ser feito via proxy/servidor, definido por API_BASE_URL.
 
-// Configuração do Google Gemini API
-export const GEMINI_API_KEY = 'AIzaSyCApKFezgdLv7-A71Gdo3pydV4AiyCl7sI';
+// URL base do servidor que fará o proxy para a API da Google
+export const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:8787';
+
+// Modelo default utilizado no servidor
 export const GEMINI_MODEL = 'gemini-2.5-flash';
 
 // Configuração do Ollama (modelo local de IA) - mantido para referência
 // export const OLLAMA_API_URL = 'http://localhost:11434/api/generate';
 // export const OLLAMA_MODEL = 'phi3:mini';
-
-// TODO: Mover para .env usando react-native-dotenv quando estiver funcionando corretamente
 

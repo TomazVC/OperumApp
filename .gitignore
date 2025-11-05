@@ -1,5 +1,8 @@
 # Environment
 .env
+.env.*
+!*.example
+server/.env
 
 # OSX
 #

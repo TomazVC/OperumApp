@@ -1,8 +1,7 @@
-import {GEMINI_API_KEY, GEMINI_MODEL} from '../../config/env';
+import {API_BASE_URL, GEMINI_MODEL} from '../../config/env';
 // import {OLLAMA_API_URL, OLLAMA_MODEL} from '../../config/env'; // Mantido para referência
 import {getChatHistory} from '../database/db';
-import {GoogleGenerativeAI} from '@google/generative-ai';
-import axios from 'axios';
+// As chamadas à API Gemini agora são feitas via servidor proxy
 
 export interface ChatbotResponse {
   message: string;
@@ -373,86 +372,32 @@ export const callGeminiAPI = async (messages: Message[]): Promise<string> => {
     : SYSTEM_PROMPT;
   
   try {
-    console.log('Chamando Google Gemini API...');
-    
-    // Inicializar cliente Gemini
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ 
-      model: GEMINI_MODEL,
-      systemInstruction: systemInstruction
+    console.log('Chamando servidor proxy do Gemini...');
+
+    const result = await fetch(`${API_BASE_URL}/ai/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: GEMINI_MODEL,
+        systemInstruction,
+        messages
+      })
     });
-    
-    // Converter mensagens para formato Gemini (remover system messages, já está no systemInstruction)
-    // A Gemini API espera um histórico de mensagens alternando entre user e model
-    // IMPORTANTE: O histórico deve SEMPRE começar com 'user', não 'model'
-    const filteredMessages = messages.filter(msg => msg.role !== 'system');
-    
-    // Remover a última mensagem (que é a mensagem atual do usuário que será enviada separadamente)
-    const historyMessages = filteredMessages.slice(0, -1);
-    
-    // Converter para formato Gemini e garantir que comece com 'user'
-    // Se o histórico começar com 'model', remover até encontrar a primeira mensagem 'user'
-    const chatHistory: Array<{role: 'user' | 'model'; parts: Array<{text: string}>}> = [];
-    
-    // Encontrar o primeiro índice com role 'user'
-    let firstUserIndex = -1;
-    for (let i = 0; i < historyMessages.length; i++) {
-      if (historyMessages[i].role === 'user') {
-        firstUserIndex = i;
-        break;
-      }
+
+    if (!result.ok) {
+      throw new Error(`Proxy error ${result.status}`);
     }
-    
-    // Se encontrou um 'user', começar a partir dele; se não, não usar histórico
-    if (firstUserIndex >= 0) {
-      // Converter todas as mensagens a partir do primeiro 'user'
-      for (let i = firstUserIndex; i < historyMessages.length; i++) {
-        const msg = historyMessages[i];
-        const role = msg.role === 'user' ? 'user' : 'model';
-        chatHistory.push({
-          role,
-          parts: [{ text: msg.content }]
-        });
-      }
+
+    const data = await result.json();
+    const text = (data?.text || '').toString();
+
+    if (text) {
+      console.log('✅ Gemini (proxy) funcionou!');
+      return ensureCompleteResponse(text);
     }
-    
-    // Criar histórico de chat ou usar mensagem única
-    let response;
-    if (chatHistory.length > 0 && chatHistory[0].role === 'user') {
-      // Verificar se o histórico termina em 'user' (deve terminar em 'model' para ser válido)
-      // Se terminar em 'user', remover a última mensagem pois será enviada separadamente
-      const lastRole = chatHistory[chatHistory.length - 1].role;
-      const validHistory = lastRole === 'user' 
-        ? chatHistory.slice(0, -1) 
-        : chatHistory;
-      
-      if (validHistory.length > 0 && validHistory[0].role === 'user') {
-        // Se há histórico válido começando com 'user', usar startChat
-        const chat = model.startChat({
-          history: validHistory
-        });
-        response = await chat.sendMessage(userInput);
-      } else {
-        // Se não há histórico válido, usar generateContent diretamente
-        response = await model.generateContent(userInput);
-      }
-    } else {
-      // Se não há histórico válido, usar generateContent diretamente
-      response = await model.generateContent(userInput);
-    }
-    
-    console.log('Resposta do Gemini:', response);
-    
-    // Extrair texto da resposta
-    const responseText = response.response.text();
-    
-    if (responseText) {
-      console.log('✅ Gemini funcionou!');
-      return ensureCompleteResponse(responseText);
-    }
-    
-    throw new Error('Resposta vazia do Gemini');
-    
+
+    throw new Error('Resposta vazia do proxy');
+
   } catch (error: any) {
     console.error('Erro ao chamar Gemini:', error);
     console.log('Erro detalhado:', {
