@@ -12,7 +12,11 @@ interface SimulationChartProps {
 }
 
 const {width: screenWidth} = Dimensions.get('window');
-const chartWidth = screenWidth - 48; // Padding lateral
+// Cálculo da largura considerando:
+// - 48px = padding do Content (24px × 2, theme.spacing.lg)
+// - 32px = padding do ChartCard (16px × 2, theme.spacing.md)
+// - 8px = margem de segurança extra para labels e marcadores
+const chartWidth = screenWidth - 88;
 
 const ChartContainer = styled.View`
   margin-bottom: ${({theme}) => theme.spacing.xl}px;
