@@ -184,14 +184,11 @@ const PortfolioScreen: React.FC = () => {
   }, [loadPortfolio, refreshAll]);
 
   const handleLogout = () => {
-    Alert.alert(
-      'Sair',
-      'Tem certeza que deseja sair da sua conta?',
-      [
-        {text: 'Cancelar', style: 'cancel'},
-        {text: 'Sair', onPress: signOut},
-      ]
-    );
+    signOut();
+    navigation.reset({
+      index: 0,
+      routes: [{name: 'Login'}],
+    });
   };
 
   const handleChatbot = () => {
@@ -232,25 +229,12 @@ const PortfolioScreen: React.FC = () => {
   };
 
   const handleRemoveSimulatedAsset = (itemId: number) => {
-    Alert.alert(
-      'Remover Ativo',
-      'Tem certeza que deseja remover este ativo da carteira simulada?',
-      [
-        {text: 'Cancelar', style: 'cancel'},
-        {
-          text: 'Remover',
-          style: 'destructive',
-          onPress: () => {
-            try {
-              portfolioSimulationService.removeSimulatedAsset(itemId);
-              loadPortfolio();
-            } catch (error: any) {
-              Alert.alert('Erro', error.message || 'Não foi possível remover o ativo');
-            }
-          },
-        },
-      ]
-    );
+    try {
+      portfolioSimulationService.removeSimulatedAsset(itemId);
+      loadPortfolio();
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Não foi possível remover o ativo');
+    }
   };
 
   // Calcular métricas do portfólio

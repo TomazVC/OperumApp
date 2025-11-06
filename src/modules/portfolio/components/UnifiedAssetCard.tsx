@@ -31,6 +31,7 @@ const RemoveButton = styled.TouchableOpacity`
   justify-content: center;
   align-items: center;
   z-index: 10;
+  elevation: 5;
 `;
 
 const Header = styled.View`
@@ -162,7 +163,11 @@ const UnifiedAssetCard: React.FC<UnifiedAssetCardProps> = ({
 
   return (
     <CardContainer variant="elevated">
-      <RemoveButton onPress={onRemove}>
+      <RemoveButton 
+        onPress={onRemove} 
+        activeOpacity={0.7}
+        pointerEvents="auto"
+      >
         <Ionicons name="trash-outline" size={14} color="#EF4444" />
       </RemoveButton>
 
