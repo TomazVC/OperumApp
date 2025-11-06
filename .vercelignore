@@ -1,0 +1,11 @@
+node_modules
+.expo
+dist
+android
+ios
+server
+.env
+.env.local
+.git
+render.yaml
+
