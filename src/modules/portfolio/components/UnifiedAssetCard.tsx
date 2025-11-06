@@ -4,7 +4,6 @@ import styled from 'styled-components/native';
 import {Ionicons} from '@expo/vector-icons';
 import {PortfolioItem, StockQuote, RecommendedAsset} from '../../../shared/types';
 import {formatCurrency, formatPercentage} from '../../../shared/utils/formatters';
-import Card from '../../../shared/components/Card';
 
 interface UnifiedAssetCardProps {
   item: PortfolioItem;
@@ -13,20 +12,22 @@ interface UnifiedAssetCardProps {
   onRemove: () => void;
 }
 
-const CardContainer = styled(Card)`
+const CardContainer = styled.View`
+  background-color: ${({theme}) => theme.colors.card};
   padding: ${({theme}) => theme.spacing.md}px;
   margin-bottom: ${({theme}) => theme.spacing.sm}px;
+  border-radius: ${({theme}) => theme.borderRadius.lg}px;
   position: relative;
-  ${({theme}) => theme.shadows.sm}
+  ${({theme}) => theme.shadows.lg}
 `;
 
 const RemoveButton = styled.TouchableOpacity`
   position: absolute;
   top: ${({theme}) => theme.spacing.sm}px;
   right: ${({theme}) => theme.spacing.sm}px;
-  width: 28px;
-  height: 28px;
-  border-radius: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
   background-color: ${({theme}) => theme.colors.error}15;
   justify-content: center;
   align-items: center;
@@ -162,13 +163,13 @@ const UnifiedAssetCard: React.FC<UnifiedAssetCardProps> = ({
   }
 
   return (
-    <CardContainer variant="elevated">
+    <CardContainer>
       <RemoveButton 
         onPress={onRemove} 
         activeOpacity={0.7}
-        pointerEvents="auto"
+        hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
       >
-        <Ionicons name="trash-outline" size={14} color="#EF4444" />
+        <Ionicons name="trash-outline" size={16} color="#EF4444" />
       </RemoveButton>
 
       <Header>

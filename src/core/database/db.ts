@@ -230,9 +230,17 @@ export const openDatabase = (): SQLite.SQLiteDatabase => {
           }
           return { lastInsertRowId: 0 };
         } else if (sql.includes('DELETE FROM')) {
-          if (sql.includes('users')) {
+          if (sql.includes('DELETE FROM users')) {
             const userId = params[0];
             webUsers = webUsers.filter(u => u.id !== userId);
+            webPortfolios = webPortfolios.filter(p => p.userId !== userId);
+          } else if (sql.includes('DELETE FROM portfolios WHERE id')) {
+            const portfolioId = params[0];
+            console.log('🗑️ WEB DB: Deletando portfolio item:', { portfolioId, beforeLength: webPortfolios.length });
+            webPortfolios = webPortfolios.filter(p => p.id !== portfolioId);
+            console.log('✅ WEB DB: Portfolio item deletado:', { afterLength: webPortfolios.length });
+          } else if (sql.includes('DELETE FROM portfolios WHERE userId')) {
+            const userId = params[0];
             webPortfolios = webPortfolios.filter(p => p.userId !== userId);
           }
           saveToLocalStorage();
