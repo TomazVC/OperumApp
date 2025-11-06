@@ -457,19 +457,37 @@ export const portfolioSimulationService = {
       throw new Error(`Ativo ${assetName} não encontrado no catálogo`);
     }
 
+    // Verificar se já existe um item com mesmo assetName, userId e isDemo === 1
+    const existingItems = portfolioService.getUserPortfolio(userId);
+    const existingItem = existingItems.find(
+      item => item.assetName === assetName && item.userId === userId && item.isDemo === 1
+    );
+
     const amount = quantity * unitPrice;
     const expectedReturn = asset.expectedReturn;
 
-    return portfolioService.addPortfolioItem({
-      userId,
-      assetName,
-      assetType: CATEGORY_TO_ASSET_TYPE[asset.category],
-      amount,
-      isDemo: 1, // Identifica como simulação
-      quantity,
-      unitPrice,
-      expectedReturn,
-    });
+    if (existingItem) {
+      // Atualizar item existente
+      portfolioService.updatePortfolioItem(existingItem.id, {
+        quantity,
+        unitPrice,
+        amount,
+        expectedReturn, // Manter expectedReturn do catálogo
+      });
+      return existingItem.id;
+    } else {
+      // Criar novo item
+      return portfolioService.addPortfolioItem({
+        userId,
+        assetName,
+        assetType: CATEGORY_TO_ASSET_TYPE[asset.category],
+        amount,
+        isDemo: 1, // Identifica como simulação
+        quantity,
+        unitPrice,
+        expectedReturn,
+      });
+    }
   },
 
   // Atualizar ativo na simulação

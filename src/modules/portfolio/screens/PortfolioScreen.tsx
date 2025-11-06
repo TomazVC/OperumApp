@@ -5,14 +5,14 @@ import {useNavigation} from '@react-navigation/native';
 import {Ionicons} from '@expo/vector-icons';
 import {RootStackNavigationProp} from '../../../core/navigation/types';
 import {useAuth} from '../../../shared/hooks/useAuth';
-import {PortfolioItem, StockPosition, PortfolioMetrics, RiskProfile, RecommendedPortfolio} from '../../../shared/types';
+import {PortfolioItem, PortfolioMetrics, RiskProfile, RecommendedPortfolio} from '../../../shared/types';
 import {portfolioService} from '../services/portfolioService';
 import {portfolioSimulationService} from '../services/portfolioSimulationService';
 import {useMarketData} from '../../../shared/hooks/useMarketData';
 import PortfolioDashboard from '../components/PortfolioDashboard';
 import AIRecommendations from '../components/AIRecommendations';
 import AssetSelector from '../components/AssetSelector';
-import StockCard from '../components/StockCard';
+import UnifiedAssetCard from '../components/UnifiedAssetCard';
 import Button from '../../../shared/components/Button';
 import Container from '../../../shared/components/Container';
 import IconButton from '../../../shared/components/IconButton';
@@ -115,51 +115,10 @@ const EmptyStateSubtext = styled.Text`
   font-family: ${({theme}) => theme.typography.body.fontFamily};
 `;
 
-const SimulatedAssetCard = styled(Card)`
-  margin-bottom: ${({theme}) => theme.spacing.sm}px;
-  padding: ${({theme}) => theme.spacing.md}px;
-`;
-
-const SimulatedAssetHeader = styled.View`
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: ${({theme}) => theme.spacing.xs}px;
-`;
-
-const SimulatedAssetName = styled.Text`
-  color: ${({theme}) => theme.colors.textDark};
-  font-size: 16px;
-  font-weight: 600;
-  flex: 1;
-  font-family: ${({theme}) => theme.typography.h3.fontFamily};
-`;
-
-const SimulatedAssetValue = styled.Text`
-  color: ${({theme}) => theme.colors.primary};
-  font-size: 16px;
-  font-weight: 700;
-  font-family: ${({theme}) => theme.typography.h3.fontFamily};
-`;
-
-const SimulatedAssetDetails = styled.View`
-  flex-direction: row;
-  flex-wrap: wrap;
-  margin-top: ${({theme}) => theme.spacing.xs}px;
-  gap: 12px;
-`;
-
-const SimulatedAssetActions = styled.View`
-  flex-direction: row;
-  margin-top: ${({theme}) => theme.spacing.sm}px;
-  gap: ${({theme}) => theme.spacing.sm}px;
-`;
-
 const PortfolioScreen: React.FC = () => {
   const navigation = useNavigation<RootStackNavigationProp>();
   const {user, signOut} = useAuth();
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
-  const [stockPositions, setStockPositions] = useState<StockPosition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAssetSelector, setShowAssetSelector] = useState(false);
@@ -193,37 +152,12 @@ const PortfolioScreen: React.FC = () => {
       }
 
       setPortfolioItems(items);
-
-      // Converter para StockPosition com dados reais das cotações
-      const positions: StockPosition[] = items.map((item, index) => {
-        const quote = stockQuotes.get(item.assetName);
-        const basePrice = 50 + Math.random() * 100; // Preço médio de compra simulado
-        const currentPrice = quote?.price || basePrice + (Math.random() - 0.5) * 20;
-        const quantity = Math.floor(Math.random() * 100) + 10;
-        const totalValue = currentPrice * quantity;
-        const profitLoss = totalValue - (basePrice * quantity);
-        const profitLossPercent = (profitLoss / (basePrice * quantity)) * 100;
-
-        return {
-          ticker: item.assetName,
-          quantity,
-          averagePrice: basePrice,
-          currentPrice,
-          totalValue,
-          profitLoss,
-          profitLossPercent,
-          change: quote?.change || currentPrice - basePrice,
-          changePercent: quote?.changePercent || ((currentPrice - basePrice) / basePrice) * 100,
-        };
-      });
-
-      setStockPositions(positions);
     } catch {
       Alert.alert('Erro', 'Não foi possível carregar o portfólio');
     } finally {
       setIsLoading(false);
     }
-  }, [user, stockQuotes]);
+  }, [user]);
 
   useEffect(() => {
     loadPortfolio();
@@ -320,27 +254,24 @@ const PortfolioScreen: React.FC = () => {
   };
 
   // Calcular métricas do portfólio
+  const simulatedItems = portfolioItems.filter(item => item.isDemo === 1);
+  const totalInvested = simulatedItems.reduce((sum, item) => {
+    if (item.quantity && item.unitPrice) {
+      return sum + item.quantity * item.unitPrice;
+    }
+    return sum + item.amount;
+  }, 0);
+
   const portfolioMetrics: PortfolioMetrics = {
-    totalValue: stockPositions.reduce((sum, pos) => sum + pos.totalValue, 0),
-    totalInvested: stockPositions.reduce((sum, pos) => sum + (pos.averagePrice * pos.quantity), 0),
-    profitLoss: stockPositions.reduce((sum, pos) => sum + pos.profitLoss, 0),
-    profitLossPercent: 0, // Calculado abaixo
-    dailyChange: stockPositions.reduce((sum, pos) => sum + pos.change, 0),
-    dailyChangePercent: 0, // Calculado abaixo
+    totalValue: totalInvested,
+    totalInvested,
+    profitLoss: 0,
+    profitLossPercent: 0,
+    dailyChange: 0,
+    dailyChangePercent: 0,
   };
 
-  if (portfolioMetrics.totalInvested > 0) {
-    portfolioMetrics.profitLossPercent = (portfolioMetrics.profitLoss / portfolioMetrics.totalInvested) * 100;
-  }
-
-  if (portfolioMetrics.totalValue > 0) {
-    portfolioMetrics.dailyChangePercent = (portfolioMetrics.dailyChange / portfolioMetrics.totalValue) * 100;
-  }
-
-  const totalValue = portfolioItems.reduce((sum, item) => sum + item.amount, 0);
-
   // Calcular métricas de simulação
-  const simulatedItems = portfolioItems.filter(item => item.isDemo === 1);
   const simulationMetrics = simulatedItems.length > 0
     ? portfolioSimulationService.calculatePortfolioMetrics(user?.id || 0, portfolioItems)
     : undefined;
@@ -417,81 +348,24 @@ const PortfolioScreen: React.FC = () => {
           />
         </View>
 
-        {/* Carteira Simulada */}
-        {simulatedItems.length > 0 && (
-          <StocksContainer style={{paddingHorizontal: 24}}>
-            <SectionTitle>Carteira Simulada</SectionTitle>
-            {simulatedItems.map((item) => {
+        {/* Minha Carteira */}
+        <StocksContainer style={{paddingHorizontal: 24}}>
+          <SectionTitle>Minha Carteira</SectionTitle>
+          {simulatedItems.length > 0 ? (
+            simulatedItems.map((item) => {
               const asset = portfolioSimulationService.getAssetByName(item.assetName);
-              const itemValue = item.quantity && item.unitPrice
-                ? item.quantity * item.unitPrice
-                : item.amount;
+              const quote = stockQuotes.get(item.assetName);
 
               return (
-                <SimulatedAssetCard key={item.id} variant="elevated">
-                  <SimulatedAssetHeader>
-                    <SimulatedAssetName>{item.assetName}</SimulatedAssetName>
-                    <SimulatedAssetValue>{formatCurrency(itemValue)}</SimulatedAssetValue>
-                  </SimulatedAssetHeader>
-                  {asset && (
-                    <SimulatedAssetDetails>
-                      <Text style={{fontSize: 12, color: '#6B7280'}}>
-                        {asset.category} • Risco: {asset.risk} • Liquidez: {asset.liquidity}
-                      </Text>
-                    </SimulatedAssetDetails>
-                  )}
-                  {(item.quantity || item.unitPrice) && (
-                    <SimulatedAssetDetails>
-                      {item.quantity && (
-                        <Text style={{fontSize: 12, color: '#6B7280'}}>
-                          Quantidade: {item.quantity.toFixed(2)}
-                        </Text>
-                      )}
-                      {item.unitPrice && (
-                        <Text style={{fontSize: 12, color: '#6B7280'}}>
-                          Preço Unitário: {formatCurrency(item.unitPrice)}
-                        </Text>
-                      )}
-                      {item.expectedReturn && (
-                        <Text style={{fontSize: 12, color: '#10B981'}}>
-                          Rentabilidade: {item.expectedReturn.toFixed(2)}%
-                        </Text>
-                      )}
-                    </SimulatedAssetDetails>
-                  )}
-                  <SimulatedAssetActions>
-                    <Button
-                      title="Remover"
-                      onPress={() => handleRemoveSimulatedAsset(item.id)}
-                      variant="secondary"
-                      size="small"
-                      icon={<Ionicons name="trash-outline" size={14} color="#EF4444" />}
-                      style={{flex: 1}}
-                    />
-                  </SimulatedAssetActions>
-                </SimulatedAssetCard>
+                <UnifiedAssetCard
+                  key={item.id}
+                  item={item}
+                  asset={asset}
+                  quote={quote}
+                  onRemove={() => handleRemoveSimulatedAsset(item.id)}
+                />
               );
-            })}
-          </StocksContainer>
-        )}
-
-        {/* Lista de Ações */}
-        <StocksContainer style={{paddingHorizontal: 24}}>
-          <SectionTitle>Suas Ações</SectionTitle>
-          {stockPositions.length > 0 ? (
-            stockPositions.map((position, index) => (
-              <StockCard
-                key={index}
-                position={position}
-                quote={stockQuotes.get(position.ticker)}
-                loading={stockQuotesLoading}
-                lastUpdate={lastUpdate}
-                onPress={() => {
-                  // Navegar para detalhes da ação
-                  Alert.alert('Em breve', `Detalhes de ${position.ticker} serão implementados`);
-                }}
-              />
-            ))
+            })
           ) : (
             <EmptyState>
               <EmptyStateIcon>
