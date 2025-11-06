@@ -12,9 +12,7 @@ import {useMarketData} from '../../../shared/hooks/useMarketData';
 import PortfolioDashboard from '../components/PortfolioDashboard';
 import AIRecommendations from '../components/AIRecommendations';
 import AssetSelector from '../components/AssetSelector';
-import MarketIndicators from '../components/MarketIndicators';
 import StockCard from '../components/StockCard';
-import PerformanceChart from '../components/PerformanceChart';
 import Button from '../../../shared/components/Button';
 import Container from '../../../shared/components/Container';
 import IconButton from '../../../shared/components/IconButton';
@@ -164,7 +162,6 @@ const PortfolioScreen: React.FC = () => {
   const [stockPositions, setStockPositions] = useState<StockPosition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [chartPeriod, setChartPeriod] = useState<'1D' | '1W' | '1M' | '3M' | '1Y'>('1M');
   const [showAssetSelector, setShowAssetSelector] = useState(false);
 
   // Hook para dados de mercado
@@ -271,10 +268,6 @@ const PortfolioScreen: React.FC = () => {
     setShowAssetSelector(true);
   };
 
-  const handleOpenSimulationHistory = () => {
-    navigation.navigate('SimulationHistory');
-  };
-
   const handleAssetSelect = (assetName: string, quantity: number, unitPrice: number) => {
     if (!user) return;
     
@@ -344,9 +337,6 @@ const PortfolioScreen: React.FC = () => {
     portfolioMetrics.dailyChangePercent = (portfolioMetrics.dailyChange / portfolioMetrics.totalValue) * 100;
   }
 
-  // Dados mockados para o gráfico de performance
-  const chartData = [100, 102, 98, 105, 110, 108, 115, 112, 118, 120, 125, 122];
-
   const totalValue = portfolioItems.reduce((sum, item) => sum + item.amount, 0);
 
   // Calcular métricas de simulação
@@ -412,18 +402,12 @@ const PortfolioScreen: React.FC = () => {
           riskProfile={riskProfile}
           onRefresh={handleRefresh}
           onAddInvestment={handleAddInvestment}
+          marketData={marketData}
+          marketDataLoading={marketDataLoading}
+          marketDataError={marketDataError}
+          lastUpdate={lastUpdate}
+          onRetry={retryFailedRequests}
         />
-
-        {/* Acesso ao Histórico de Simulações */}
-        <View style={{marginBottom: 16, paddingHorizontal: 24}}>
-          <Button
-            title="Histórico de Simulações"
-            onPress={handleOpenSimulationHistory}
-            variant="secondary"
-            size="large"
-            icon={<Ionicons name="time-outline" size={20} color="#8B5CF6" />}
-          />
-        </View>
 
         {/* Sugestões da IA */}
         <View style={{paddingHorizontal: 24}}>
@@ -490,27 +474,6 @@ const PortfolioScreen: React.FC = () => {
             })}
           </StocksContainer>
         )}
-
-        {/* Indicadores de Mercado */}
-        <View style={{paddingHorizontal: 24}}>
-          <MarketIndicators
-            data={marketData}
-            loading={marketDataLoading}
-            error={marketDataError}
-            lastUpdate={lastUpdate}
-            onRetry={retryFailedRequests}
-          />
-        </View>
-
-        {/* Gráfico de Performance */}
-        <View style={{paddingHorizontal: 24}}>
-          <PerformanceChart
-            data={chartData}
-            period={chartPeriod}
-            onPeriodChange={setChartPeriod}
-            loading={isLoading}
-          />
-        </View>
 
         {/* Lista de Ações */}
         <StocksContainer style={{paddingHorizontal: 24}}>

@@ -230,15 +230,6 @@ const AIRecommendations: React.FC<AIRecommendationsProps> = ({
     <Container>
       <Header>
         <Title>Sugestões da IA</Title>
-        {onApplyRecommendation && (
-          <Button
-            title="Aplicar"
-            onPress={() => onApplyRecommendation(recommendedPortfolio)}
-            variant="gradient"
-            size="small"
-            icon={<Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-          />
-        )}
       </Header>
 
       {/* Carteira Recomendada */}

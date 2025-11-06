@@ -2,7 +2,7 @@ import React from 'react';
 import {View, Text, TouchableOpacity, RefreshControl, ScrollView} from 'react-native';
 import styled from 'styled-components/native';
 import {Ionicons} from '@expo/vector-icons';
-import {PortfolioMetrics, RiskProfile, PortfolioSimulationMetrics} from '../../../shared/types';
+import {PortfolioMetrics, RiskProfile, PortfolioSimulationMetrics, MarketData} from '../../../shared/types';
 import {formatCurrency, formatPercentage} from '../../../shared/utils/formatters';
 import Card from '../../../shared/components/Card';
 import Button from '../../../shared/components/Button';
@@ -16,6 +16,11 @@ interface PortfolioDashboardProps {
   riskProfile?: RiskProfile;
   onRefresh: () => void;
   onAddInvestment: () => void;
+  marketData?: MarketData | null;
+  marketDataLoading?: boolean;
+  marketDataError?: string | null;
+  lastUpdate?: Date | null;
+  onRetry?: () => void;
 }
 
 const Container = styled.View`
@@ -38,8 +43,9 @@ const Title = styled.Text`
 `;
 
 const AddButton = styled(Button)`
-  padding-horizontal: ${({theme}) => theme.spacing.sm}px;
-  padding-vertical: ${({theme}) => theme.spacing.xs}px;
+  padding-horizontal: ${({theme}) => theme.spacing.xs}px;
+  padding-vertical: ${({theme}) => theme.spacing.xs / 2}px;
+  min-height: 32px;
 `;
 
 const MetricsGrid = styled.View`
@@ -48,10 +54,10 @@ const MetricsGrid = styled.View`
   gap: ${({theme}) => theme.spacing.sm}px;
 `;
 
-const MetricCard = styled(Card)<{isHighlight?: boolean}>`
+const MetricCard = styled(Card)<{isHighlight?: boolean; isCompact?: boolean}>`
   flex: 1;
   min-width: 150px;
-  padding: ${({theme}) => theme.spacing.md}px;
+  padding: ${({theme, isCompact}) => isCompact ? theme.spacing.sm : theme.spacing.md}px;
   ${({theme}) => theme.shadows.sm}
   ${({isHighlight, theme}) => isHighlight && `
     background-color: ${theme.colors.primary}10;
@@ -66,36 +72,39 @@ const MetricHeader = styled.View`
   margin-bottom: ${({theme}) => theme.spacing.sm}px;
 `;
 
-const MetricIcon = styled.View<{color: string}>`
-  width: 32px;
-  height: 32px;
-  border-radius: 16px;
+const MetricIcon = styled.View<{color: string; isCompact?: boolean}>`
+  width: ${({isCompact}) => isCompact ? 24 : 32}px;
+  height: ${({isCompact}) => isCompact ? 24 : 32}px;
+  border-radius: ${({isCompact}) => isCompact ? 12 : 16}px;
   background-color: ${({color}) => color}20;
   justify-content: center;
   align-items: center;
   margin-right: ${({theme}) => theme.spacing.sm}px;
 `;
 
-const MetricTitle = styled.Text`
+const MetricTitle = styled.Text<{isCompact?: boolean}>`
   color: ${({theme}) => theme.colors.textSecondary};
-  font-size: 12px;
+  font-size: ${({isCompact}) => isCompact ? 10 : 12}px;
   font-weight: 500;
   font-family: ${({theme}) => theme.typography.small.fontFamily};
 `;
 
-const MetricValue = styled.Text<{isHighlight?: boolean}>`
+const MetricValue = styled.Text<{isHighlight?: boolean; isCompact?: boolean}>`
   color: ${({theme, isHighlight}) => 
     isHighlight ? theme.colors.primary : theme.colors.textDark};
-  font-size: ${({isHighlight}) => isHighlight ? '20px' : '16px'};
+  font-size: ${({isHighlight, isCompact}) => {
+    if (isCompact) return '12px';
+    return isHighlight ? '20px' : '16px';
+  }};
   font-weight: ${({isHighlight}) => isHighlight ? '700' : '600'};
   margin-bottom: ${({theme}) => theme.spacing.xs}px;
   font-family: ${({theme}) => theme.typography.h3.fontFamily};
 `;
 
-const MetricChange = styled.Text<{isPositive: boolean}>`
+const MetricChange = styled.Text<{isPositive: boolean; isCompact?: boolean}>`
   color: ${({theme, isPositive}) => 
     isPositive ? theme.colors.positive : theme.colors.negative};
-  font-size: 12px;
+  font-size: ${({isCompact}) => isCompact ? 10 : 12}px;
   font-weight: 500;
   font-family: ${({theme}) => theme.typography.small.fontFamily};
 `;
@@ -229,6 +238,11 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({
   riskProfile,
   onRefresh,
   onAddInvestment,
+  marketData,
+  marketDataLoading,
+  marketDataError,
+  lastUpdate,
+  onRetry,
 }) => {
   if (loading) {
     return (
@@ -338,7 +352,7 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({
           onPress={onAddInvestment}
           variant="gradient"
           size="small"
-          icon={<Ionicons name="add" size={16} color="#FFFFFF" />}
+          icon={<Ionicons name="add" size={14} color="#FFFFFF" />}
         />
       </Header>
 
@@ -385,6 +399,61 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({
             )}
           </MetricCard>
         ))}
+
+        {/* Indicadores de Mercado Compactos */}
+        {marketData && !marketDataLoading && !marketDataError && (
+          <>
+            <MetricCard isCompact>
+              <MetricHeader>
+                <MetricIcon color="#8B5CF6" isCompact>
+                  <Ionicons name="trending-up-outline" size={12} color="#8B5CF6" />
+                </MetricIcon>
+                <MetricTitle isCompact>Ibovespa</MetricTitle>
+              </MetricHeader>
+              <MetricValue isCompact>{formatCurrency(marketData.ibovespa.value)}</MetricValue>
+              {marketData.ibovespa.changePercent !== 0 && (
+                <MetricChange isPositive={marketData.ibovespa.changePercent > 0} isCompact>
+                  {marketData.ibovespa.changePercent > 0 ? '+' : ''}{formatPercentage(marketData.ibovespa.changePercent)}
+                </MetricChange>
+              )}
+            </MetricCard>
+
+            <MetricCard isCompact>
+              <MetricHeader>
+                <MetricIcon color="#10B981" isCompact>
+                  <Ionicons name="cash-outline" size={12} color="#10B981" />
+                </MetricIcon>
+                <MetricTitle isCompact>Dólar</MetricTitle>
+              </MetricHeader>
+              <MetricValue isCompact>R$ {marketData.dolar.value.toFixed(2)}</MetricValue>
+              {marketData.dolar.changePercent !== 0 && (
+                <MetricChange isPositive={marketData.dolar.changePercent > 0} isCompact>
+                  {marketData.dolar.changePercent > 0 ? '+' : ''}{formatPercentage(marketData.dolar.changePercent)}
+                </MetricChange>
+              )}
+            </MetricCard>
+
+            <MetricCard isCompact>
+              <MetricHeader>
+                <MetricIcon color="#EF4444" isCompact>
+                  <Ionicons name="trending-down-outline" size={12} color="#EF4444" />
+                </MetricIcon>
+                <MetricTitle isCompact>Selic</MetricTitle>
+              </MetricHeader>
+              <MetricValue isCompact>{marketData.selic.toFixed(2)}%</MetricValue>
+            </MetricCard>
+
+            <MetricCard isCompact>
+              <MetricHeader>
+                <MetricIcon color="#F59E0B" isCompact>
+                  <Ionicons name="bar-chart-outline" size={12} color="#F59E0B" />
+                </MetricIcon>
+                <MetricTitle isCompact>IPCA</MetricTitle>
+              </MetricHeader>
+              <MetricValue isCompact>{marketData.ipca.toFixed(2)}%</MetricValue>
+            </MetricCard>
+          </>
+        )}
       </MetricsGrid>
 
       {/* Gráfico de Distribuição */}
