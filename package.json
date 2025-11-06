@@ -1,6 +1,7 @@
 {
   "name": "OperumApp",
   "version": "0.0.1",
+  "type": "module",
   "private": true,
   "scripts": {
     "start": "expo start",
