@@ -35,6 +35,7 @@ const InputWrapper = styled.View<{focused: boolean; error?: string}>`
   }};
   flex-direction: row;
   align-items: center;
+  overflow: hidden;
   ${({theme, focused}) => focused && theme.shadows.md}
 `;
 
@@ -45,26 +46,34 @@ const IconContainer = styled.View`
 
 const InputField = styled.View`
   flex: 1;
+  flex-shrink: 1;
+  min-width: 0;
   flex-direction: row;
   align-items: center;
 `;
 
-const StyledInput = styled.TextInput<{error?: string; hasIcon?: boolean}>`
+const StyledInput = styled.TextInput<{error?: string; hasIcon?: boolean; hasPasswordToggle?: boolean}>`
   background-color: transparent;
   color: ${({theme}) => theme.colors.text};
   padding-top: ${({theme}) => theme.spacing.md}px;
   padding-bottom: ${({theme}) => theme.spacing.md}px;
   padding-left: ${({theme, hasIcon}) => hasIcon ? theme.spacing.sm : theme.spacing.md}px;
-  padding-right: ${({theme, hasIcon}) => hasIcon ? theme.spacing.sm : theme.spacing.md}px;
+  padding-right: ${({theme, hasIcon, hasPasswordToggle}) => {
+    if (hasPasswordToggle) return theme.spacing.xs;
+    return hasIcon ? theme.spacing.sm : theme.spacing.md;
+  }}px;
   font-size: 16px;
   font-family: ${({theme}) => theme.typography.body.fontFamily};
   min-height: 48px;
   flex: 1;
+  flex-shrink: 1;
+  min-width: 0;
 `;
 
 const PasswordToggle = styled.TouchableOpacity`
   padding: ${({theme}) => theme.spacing.sm}px;
-  margin-right: ${({theme}) => theme.spacing.sm}px;
+  padding-right: ${({theme}) => theme.spacing.md}px;
+  flex-shrink: 0;
 `;
 
 const ErrorText = styled.Text`
@@ -139,6 +148,7 @@ const Input: React.FC<InputProps> = ({
             onBlur={handleBlur}
             secureTextEntry={secureTextEntry && !showPassword}
             hasIcon={!!icon}
+            hasPasswordToggle={showPasswordToggle && secureTextEntry}
             {...props}
           />
           {showPasswordToggle && secureTextEntry && (
