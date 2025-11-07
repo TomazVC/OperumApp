@@ -202,7 +202,7 @@ const DistributionItem = styled.View`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: ${({theme}) => theme.spacing.sm}px 0;
+  padding: ${({theme}) => theme.spacing.md}px 0;
   border-bottom-width: 1px;
   border-bottom-color: ${({theme}) => theme.colors.border};
 `;
@@ -211,22 +211,42 @@ const DistributionLabel = styled.View`
   flex-direction: row;
   align-items: center;
   flex: 1;
+  flex-shrink: 1;
+  margin-right: ${({theme}) => theme.spacing.md}px;
+`;
+
+const DistributionBarContainer = styled.View`
+  width: 60px;
+  height: 8px;
+  background-color: ${({theme}) => theme.colors.border};
+  border-radius: 4px;
+  margin-right: ${({theme}) => theme.spacing.md}px;
+  overflow: hidden;
 `;
 
 const DistributionBar = styled.View<{percentage: number; color: string}>`
-  height: 8px;
+  height: 100%;
   width: ${({percentage}) => percentage}%;
   background-color: ${({color}) => color};
   border-radius: 4px;
-  margin-right: ${({theme}) => theme.spacing.sm}px;
+`;
+
+const DistributionCategoryText = styled.Text`
+  color: ${({theme}) => theme.colors.textDark};
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+  flex-shrink: 1;
+  font-family: ${({theme}) => theme.typography.body.fontFamily};
 `;
 
 const DistributionText = styled.Text`
   color: ${({theme}) => theme.colors.textDark};
   font-size: 14px;
-  font-weight: 500;
-  min-width: 60px;
+  font-weight: 600;
+  min-width: 70px;
   text-align: right;
+  margin-left: ${({theme}) => theme.spacing.sm}px;
   font-family: ${({theme}) => theme.typography.body.fontFamily};
 `;
 
@@ -464,13 +484,15 @@ const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({
             {simulationMetrics.distributionByCategory.map((dist, index) => (
               <DistributionItem key={index}>
                 <DistributionLabel>
-                  <DistributionBar 
-                    percentage={dist.percentage} 
-                    color={categoryColors[dist.category] || '#8B5CF6'}
-                  />
-                  <Text style={{fontSize: 14, color: '#374151', flex: 1}}>
+                  <DistributionBarContainer>
+                    <DistributionBar 
+                      percentage={dist.percentage} 
+                      color={categoryColors[dist.category] || '#8B5CF6'}
+                    />
+                  </DistributionBarContainer>
+                  <DistributionCategoryText numberOfLines={1}>
                     {dist.category}
-                  </Text>
+                  </DistributionCategoryText>
                 </DistributionLabel>
                 <DistributionText>{formatPercentage(dist.percentage)}</DistributionText>
               </DistributionItem>
