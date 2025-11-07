@@ -1399,38 +1399,38 @@ __d(function(g,r,i,a,m,_e,d){"use strict";Object.defineProperty(_e,'__esModule',
 __d(function(g,r,i,a,m,_e,d){"use strict";function e(e){return e&&e.__esModule?e:{default:e}}Object.defineProperty(_e,'__esModule',{value:!0}),Object.defineProperty(_e,"default",{enumerable:!0,get:function(){return p}}),Object.defineProperty(_e,"dadosMercadoAPI",{enumerable:!0,get:function(){return c}});var t=e(r(d[0])),n=e(r(d[1])),o=e(r(d[2]));new Map;const c={getStockQuote:async e=>{try{return await t.default.getStockQuote(e)}catch(t){return console.warn(`Erro ao buscar cota\xe7\xe3o de ${e}, usando dados mockados`),s(e)}},getMarketIndices:async()=>{try{const[e,t]=await Promise.all([n.default.getDollarQuote(),n.default.getIbovespaQuote()]);return[{name:'Ibovespa',value:t.value,change:t.change,changePercent:t.changePercent},{name:'D\xf3lar',value:e.value,change:e.change,changePercent:e.changePercent}]}catch(e){return console.warn('Erro ao buscar \xedndices, usando dados mockados'),u()}},getDividends:async e=>(console.warn(`Dividendos n\xe3o dispon\xedveis via Brapi para ${e}, usando dados mockados`),l(e)),getMacroIndicators:async()=>{try{const[e,t]=await Promise.all([n.default.getMacroIndicators(),o.default.getIPCA()]);return Object.assign({},e,{ipca:t,lastUpdate:(new Date).toISOString()})}catch(e){return console.warn('Erro ao buscar indicadores macro, usando dados mockados'),h()}},getNews:async(e=10)=>(console.warn('Not\xedcias n\xe3o dispon\xedveis via APIs gratuitas, usando dados mockados'),M()),getAvailableTickers:async()=>{try{return await t.default.getAvailableTickers()}catch(e){return console.warn('Erro ao buscar tickers, usando lista mockada'),['PETR4','VALE3','ITUB4','BBDC4','ABEV3','WEGE3','MGLU3','RENT3','B3SA3','SUZB3']}}},s=e=>{const t=100*Math.random()+10,n=10*(Math.random()-.5);return{ticker:e,price:Number(t.toFixed(2)),change:Number(n.toFixed(2)),changePercent:Number((n/t*100).toFixed(2)),volume:Math.floor(1e6*Math.random()),high:Number((t+5*Math.random()).toFixed(2)),low:Number((t-5*Math.random()).toFixed(2)),open:Number((t+2*(Math.random()-.5)).toFixed(2)),previousClose:Number((t-n).toFixed(2))}},u=()=>[{name:'Ibovespa',value:12e4+1e4*Math.random(),change:2e3*(Math.random()-.5),changePercent:5*(Math.random()-.5)},{name:'D\xf3lar',value:5+.5*Math.random(),change:.2*(Math.random()-.5),changePercent:4*(Math.random()-.5)}],l=e=>[{ticker:e,value:2*Math.random(),exDate:new Date(Date.now()+30*Math.random()*24*60*60*1e3).toISOString(),paymentDate:new Date(Date.now()+60*Math.random()*24*60*60*1e3).toISOString(),type:'dividend'}],h=()=>({ibovespa:{name:'Ibovespa',value:12e4+1e4*Math.random(),change:2e3*(Math.random()-.5),changePercent:5*(Math.random()-.5)},dolar:{name:'D\xf3lar',value:5+.5*Math.random(),change:.2*(Math.random()-.5),changePercent:4*(Math.random()-.5)},selic:10+2*Math.random(),ipca:4+2*Math.random(),lastUpdate:(new Date).toISOString()}),M=()=>[{id:'1',title:'Mercado financeiro em alta com expectativas positivas',summary:'Os principais \xedndices registraram ganhos significativos...',url:'https://example.com/news/1',publishedAt:(new Date).toISOString(),source:'Dados de Mercado'},{id:'2',title:'Taxa Selic mantida em 10,75% ao ano',summary:'O Comit\xea de Pol\xedtica Monet\xe1ria decidiu manter...',url:'https://example.com/news/2',publishedAt:new Date(Date.now()-864e5).toISOString(),source:'Dados de Mercado'}];var p=c},758,[706,759,760]);
 __d(function(g,r,i,a,m,_e,d){"use strict";Object.defineProperty(_e,'__esModule',{value:!0}),Object.defineProperty(_e,"default",{enumerable:!0,get:function(){return A}}),Object.defineProperty(_e,"getDollarQuote",{enumerable:!0,get:function(){return l}}),Object.defineProperty(_e,"getIbovespaQuote",{enumerable:!0,get:function(){return h}}),Object.defineProperty(_e,"getSelicRate",{enumerable:!0,get:function(){return b}}),Object.defineProperty(_e,"getEuroQuote",{enumerable:!0,get:function(){return p}}),Object.defineProperty(_e,"getBitcoinQuote",{enumerable:!0,get:function(){return v}}),Object.defineProperty(_e,"getMultipleCurrencies",{enumerable:!0,get:function(){return w}}),Object.defineProperty(_e,"getMacroIndicators",{enumerable:!0,get:function(){return P}});var e,t=r(d[0]),o=(e=t)&&e.__esModule?e:{default:e};const n=o.default.create({baseURL:'                                                                                                                                                                                        ',timeout:1e4,headers:{'Content-Type':'application/json'}}),c=new Map,s=e=>{const t=c.get(e);return t&&Date.now()-t.timestamp<3e5?t.data:null},u=(e,t)=>{c.set(e,{data:t,timestamp:Date.now()})};n.interceptors.response.use(e=>e,e=>(console.error('AwesomeAPI Error:',e.response?.data||e.message),Promise.reject(e)));const l=async()=>{const e='dollar_quote',t=s(e);if(t)return t;try{const t=await n.get('/json/last/USD-BRL');if(!t.data||!t.data.USDBRL)throw new Error('Dados do d\xf3lar n\xe3o encontrados');const o=t.data.USDBRL,c={value:parseFloat(o.bid)||0,change:parseFloat(o.varBid)||0,changePercent:parseFloat(o.pctChange)||0};return u(e,c),c}catch(e){return console.warn('Erro ao buscar cota\xe7\xe3o do d\xf3lar via AwesomeAPI, usando dados mockados'),f()}},h=async()=>{const e=s('ibovespa_quote');if(e)return e;try{throw new Error('Ibovespa n\xe3o dispon\xedvel na AwesomeAPI')}catch(e){return console.warn('Erro ao buscar cota\xe7\xe3o do Ibovespa via AwesomeAPI, usando dados mockados'),y()}},b=async()=>{const e=s('selic_rate');if(e)return e;try{throw new Error('Selic n\xe3o dispon\xedvel na AwesomeAPI')}catch(e){return console.warn('Erro ao buscar taxa Selic via AwesomeAPI, usando dados mockados'),M()}},p=async()=>{const e='euro_quote',t=s(e);if(t)return t;try{const t=await n.get('/json/last/EUR-BRL');if(!t.data||!t.data.EURBRL)throw new Error('Dados do Euro n\xe3o encontrados');const o=t.data.EURBRL,c={value:parseFloat(o.bid)||0,change:parseFloat(o.varBid)||0,changePercent:parseFloat(o.pctChange)||0};return u(e,c),c}catch(e){return console.warn('Erro ao buscar cota\xe7\xe3o do Euro via AwesomeAPI, usando dados mockados'),B()}},v=async()=>{const e='bitcoin_quote',t=s(e);if(t)return t;try{const t=await n.get('/json/last/BTC-BRL');if(!t.data||!t.data.BTCBRL)throw new Error('Dados do Bitcoin n\xe3o encontrados');const o=t.data.BTCBRL,c={value:parseFloat(o.bid)||0,change:parseFloat(o.varBid)||0,changePercent:parseFloat(o.pctChange)||0};return u(e,c),c}catch(e){return console.warn('Erro ao buscar cota\xe7\xe3o do Bitcoin via AwesomeAPI, usando dados mockados'),R()}},w=async(e=['USD-BRL','EUR-BRL','GBP-BRL'])=>{const t=`multiple_currencies_${e.join(',')}`,o=s(t);if(o)return o;try{const o=await n.get(`/json/last/${e.join(',')}`);if(!o.data)throw new Error('Dados das moedas n\xe3o encontrados');return u(t,o.data),o.data}catch(e){return console.warn('Erro ao buscar m\xfaltiplas moedas via AwesomeAPI, usando dados mockados'),E()}},P=async()=>{const e='macro_indicators',t=s(e);if(t)return t;try{const[t,o,n]=await Promise.all([l(),h(),b()]),c={ibovespa:{name:'Ibovespa',value:o.value,change:o.change,changePercent:o.changePercent},dolar:{name:'D\xf3lar',value:t.value,change:t.change,changePercent:t.changePercent},selic:n,ipca:0,lastUpdate:(new Date).toISOString()};return u(e,c),c}catch(e){return console.warn('Erro ao buscar indicadores macro via AwesomeAPI, usando dados mockados'),F()}},f=()=>{const e=5+.5*Math.random(),t=.2*(Math.random()-.5);return{value:Number(e.toFixed(2)),change:Number(t.toFixed(2)),changePercent:Number((t/e*100).toFixed(2))}},B=()=>{const e=6+.5*Math.random(),t=.2*(Math.random()-.5);return{value:Number(e.toFixed(2)),change:Number(t.toFixed(2)),changePercent:Number((t/e*100).toFixed(2))}},R=()=>{const e=5e5+1e5*Math.random(),t=2e4*(Math.random()-.5);return{value:Number(e.toFixed(2)),change:Number(t.toFixed(2)),changePercent:Number((t/e*100).toFixed(2))}},E=()=>({USDBRL:{code:'USD',codein:'BRL',name:'D\xf3lar Americano/Real Brasileiro',bid:'5.35',ask:'5.36',varBid:'0.01',pctChange:'0.18'},EURBRL:{code:'EUR',codein:'BRL',name:'Euro/Real Brasileiro',bid:'6.20',ask:'6.21',varBid:'0.02',pctChange:'0.32'}}),y=()=>{const e=12e4+1e4*Math.random(),t=2e3*(Math.random()-.5);return{value:Number(e.toFixed(2)),change:Number(t.toFixed(2)),changePercent:Number((t/e*100).toFixed(2))}},M=()=>Number((10+2*Math.random()).toFixed(2)),F=()=>({ibovespa:{name:'Ibovespa',value:12e4+1e4*Math.random(),change:2e3*(Math.random()-.5),changePercent:5*(Math.random()-.5)},dolar:{name:'D\xf3lar',value:5+.5*Math.random(),change:.2*(Math.random()-.5),changePercent:4*(Math.random()-.5)},selic:10+2*Math.random(),ipca:4+2*Math.random(),lastUpdate:(new Date).toISOString()});var A={getDollarQuote:l,getEuroQuote:p,getBitcoinQuote:v,getIbovespaQuote:h,getSelicRate:b,getMultipleCurrencies:w,getMacroIndicators:P}},759,[707]);
 __d(function(g,r,_i,a,m,_e,d){"use strict";Object.defineProperty(_e,'__esModule',{value:!0}),Object.defineProperty(_e,"default",{enumerable:!0,get:function(){return f}}),Object.defineProperty(_e,"getIPCA",{enumerable:!0,get:function(){return l}}),Object.defineProperty(_e,"getIPCA12Months",{enumerable:!0,get:function(){return u}}),Object.defineProperty(_e,"getEconomicIndicators",{enumerable:!0,get:function(){return p}});var e,t=r(d[0]),o=(e=t)&&e.__esModule?e:{default:e};const n=o.default.create({baseURL:'https://servicodados.ibge.gov.br/api/v3',timeout:1e4,headers:{'Content-Type':'application/json'}}),s=new Map,c=e=>{const t=s.get(e);return t&&Date.now()-t.timestamp<864e5?t.data:null},i=(e,t)=>{s.set(e,{data:t,timestamp:Date.now()})};n.interceptors.response.use(e=>e,e=>(console.error('IBGE API Error:',e.response?.data||e.message),Promise.reject(e)));const l=async()=>{const e='ipca_rate',t=c(e);if(t)return t;try{const t=await n.get('/agregados/1737/periodos/-1/variaveis/63');if(!t.data||!t.data.series||0===t.data.series.length)throw new Error('Dados do IPCA n\xe3o encontrados');const o=t.data.series[0];if(!o.valores||0===o.valores.length)throw new Error('Valores do IPCA n\xe3o encontrados');const s=o.valores[o.valores.length-1],c=parseFloat(s.valor)||0;return i(e,c),c}catch(e){return console.warn('Erro ao buscar IPCA via IBGE API, usando dados mockados'),h()}},u=async()=>{const e='ipca_12_months',t=c(e);if(t)return t;try{const t=await n.get('/agregados/1737/periodos/-12/variaveis/63');if(!t.data||!t.data.series||0===t.data.series.length)throw new Error('Dados do IPCA dos \xfaltimos 12 meses n\xe3o encontrados');const o=t.data.series[0];if(!o.valores||0===o.valores.length)throw new Error('Valores do IPCA dos \xfaltimos 12 meses n\xe3o encontrados');const s=o.valores.map(e=>({month:e.data,value:parseFloat(e.valor)||0}));return i(e,s),s}catch(e){return console.warn('Erro ao buscar IPCA dos \xfaltimos 12 meses via IBGE API, usando dados mockados'),v()}},p=async()=>{const e='economic_indicators',t=c(e);if(t)return t;try{const[t,o]=await Promise.all([l(),u()]),n={ipca:t,ipca12Months:o,lastUpdate:(new Date).toISOString()};return i(e,n),n}catch(e){return console.warn('Erro ao buscar indicadores econ\xf4micos via IBGE API, usando dados mockados'),I()}},h=()=>Number((4+2*Math.random()).toFixed(2)),v=()=>{const e=[],t=new Date;for(let o=11;o>=0;o--){const n=new Date(t.getFullYear(),t.getMonth()-o,1).toISOString().substring(0,7),s=4+2*Math.random();e.push({month:n,value:Number(s.toFixed(2))})}return e},I=()=>({ipca:4+2*Math.random(),ipca12Months:v(),lastUpdate:(new Date).toISOString()});var f={getIPCA:l,getIPCA12Months:u,getEconomicIndicators:p}},760,[707]);
-__d(function(g,r,i,a,m,_e,d){"use strict";function e(e){return e&&e.__esModule?e:{default:e}}Object.defineProperty(_e,'__esModule',{value:!0}),Object.defineProperty(_e,"default",{enumerable:!0,get:function(){return N}}),r(d[0]);var t=e(r(d[1])),o=e(r(d[2])),n=e(r(d[3])),s=r(d[4]),l=r(d[5]),c=e(r(d[6])),h=e(r(d[7])),p=r(d[8]),x=r(d[9]);const f=n.default.View`
+__d(function(g,r,i,a,m,_e,d){"use strict";function e(e){return e&&e.__esModule?e:{default:e}}Object.defineProperty(_e,'__esModule',{value:!0}),Object.defineProperty(_e,"default",{enumerable:!0,get:function(){return U}}),r(d[0]);var t=e(r(d[1])),o=e(r(d[2])),n=r(d[3]),l=r(d[4]),s=e(r(d[5])),c=e(r(d[6])),h=r(d[7]),p=r(d[8]);const x=o.default.View`
   margin-bottom: ${({theme:e})=>e.spacing.lg}px;
   padding-horizontal: ${({theme:e})=>e.spacing.lg}px;
-`,u=n.default.View`
+`,f=o.default.View`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
   margin-bottom: ${({theme:e})=>e.spacing.md}px;
-`,j=n.default.Text`
+`,u=o.default.Text`
   color: ${({theme:e})=>e.colors.textDark};
   font-size: 24px;
   font-weight: 700;
   font-family: ${({theme:e})=>e.typography.h2.fontFamily};
-`,y=(0,n.default)(h.default)`
+`,y=(0,o.default)(c.default)`
   padding-horizontal: ${({theme:e})=>e.spacing.xs}px;
   padding-vertical: ${({theme:e})=>e.spacing.xs/2}px;
   min-height: 32px;
-`,$=n.default.View`
+`,j=o.default.View`
   flex-direction: row;
   flex-wrap: wrap;
   gap: ${({theme:e})=>e.spacing.sm}px;
-`,F=(0,n.default)(c.default)`
+`,$=(0,o.default)(s.default)`
   flex: 1;
   min-width: 150px;
   padding: ${({theme:e,isCompact:t})=>t?e.spacing.sm:e.spacing.md}px;
   ${({theme:e})=>e.shadows.sm}
   ${({isHighlight:e,theme:t})=>e&&`\n    background-color: ${t.colors.primary}10;\n    border-width: 1px;\n    border-color: ${t.colors.primary}30;\n  `}
-`,b=n.default.View`
+`,F=o.default.View`
   flex-direction: row;
   align-items: center;
   margin-bottom: ${({theme:e})=>e.spacing.sm}px;
-`,w=n.default.View`
+`,b=o.default.View`
   width: ${({isCompact:e})=>e?24:32}px;
   height: ${({isCompact:e})=>e?24:32}px;
   border-radius: ${({isCompact:e})=>e?12:16}px;
@@ -1438,55 +1438,55 @@ __d(function(g,r,i,a,m,_e,d){"use strict";function e(e){return e&&e.__esModule?e
   justify-content: center;
   align-items: center;
   margin-right: ${({theme:e})=>e.spacing.sm}px;
-`,C=n.default.Text`
+`,w=o.default.Text`
   color: ${({theme:e})=>e.colors.textSecondary};
   font-size: ${({isCompact:e})=>e?10:12}px;
   font-weight: 500;
   font-family: ${({theme:e})=>e.typography.small.fontFamily};
-`,v=n.default.Text`
+`,C=o.default.Text`
   color: ${({theme:e,isHighlight:t})=>t?e.colors.primary:e.colors.textDark};
   font-size: ${({isHighlight:e,isCompact:t})=>t?'12px':e?'20px':'16px'};
   font-weight: ${({isHighlight:e})=>e?'700':'600'};
   margin-bottom: ${({theme:e})=>e.spacing.xs}px;
   font-family: ${({theme:e})=>e.typography.h3.fontFamily};
-`,P=n.default.Text`
+`,v=o.default.Text`
   color: ${({theme:e,isPositive:t})=>t?e.colors.positive:e.colors.negative};
   font-size: ${({isCompact:e})=>e?10:12}px;
   font-weight: 500;
   font-family: ${({theme:e})=>e.typography.small.fontFamily};
-`,z=n.default.View`
+`,P=o.default.View`
   padding: ${({theme:e})=>e.spacing.xl}px;
   align-items: center;
-`,B=n.default.Text`
+`,z=o.default.Text`
   color: ${({theme:e})=>e.colors.textSecondary};
   font-size: 14px;
   margin-top: ${({theme:e})=>e.spacing.sm}px;
   font-family: ${({theme:e})=>e.typography.body.fontFamily};
-`,V=n.default.View`
+`,B=o.default.View`
   padding: ${({theme:e})=>e.spacing.lg}px;
   background-color: ${({theme:e})=>e.colors.error}10;
   border-radius: ${({theme:e})=>e.borderRadius.md}px;
   border-width: 1px;
   border-color: ${({theme:e})=>e.colors.error}30;
   align-items: center;
-`,k=n.default.Text`
+`,k=o.default.Text`
   color: ${({theme:e})=>e.colors.error};
   font-size: 14px;
   text-align: center;
   margin-bottom: ${({theme:e})=>e.spacing.sm}px;
   font-family: ${({theme:e})=>e.typography.body.fontFamily};
-`,I=(0,n.default)(h.default)`
+`,V=(0,o.default)(c.default)`
   padding-horizontal: ${({theme:e})=>e.spacing.md}px;
   padding-vertical: ${({theme:e})=>e.spacing.sm}px;
-`,H=(0,n.default)(c.default)`
+`,I=(0,o.default)(s.default)`
   margin-bottom: ${({theme:e})=>e.spacing.md}px;
   background-color: #8B5CF6;
   ${({theme:e})=>e.shadows.lg}
-`,T=n.default.View`
+`,H=o.default.View`
   flex-direction: row;
   align-items: center;
   margin-bottom: ${({theme:e})=>e.spacing.sm}px;
-`,E=n.default.View`
+`,T=o.default.View`
   width: 40px;
   height: 40px;
   border-radius: 20px;
@@ -1494,54 +1494,70 @@ __d(function(g,r,i,a,m,_e,d){"use strict";function e(e){return e&&e.__esModule?e
   justify-content: center;
   align-items: center;
   margin-right: ${({theme:e})=>e.spacing.sm}px;
-`,R=n.default.Text`
+`,E=o.default.Text`
   color: #FFFFFF;
   font-size: 14px;
   font-weight: 500;
   font-family: ${({theme:e})=>e.typography.body.fontFamily};
-`,D=n.default.Text`
+`,R=o.default.Text`
   color: #FFFFFF;
   font-size: 20px;
   font-weight: 700;
   font-family: ${({theme:e})=>e.typography.h3.fontFamily};
-`,M=n.default.Text`
+`,D=o.default.Text`
   color: rgba(255, 255, 255, 0.9);
   font-size: 12px;
   margin-top: ${({theme:e})=>e.spacing.xs}px;
   font-family: ${({theme:e})=>e.typography.body.fontFamily};
-`,_=n.default.View`
+`,M=o.default.View`
   margin-top: ${({theme:e})=>e.spacing.md}px;
-`,A=n.default.Text`
+`,_=o.default.Text`
   color: ${({theme:e})=>e.colors.textDark};
   font-size: 16px;
   font-weight: 600;
   margin-bottom: ${({theme:e})=>e.spacing.sm}px;
   font-family: ${({theme:e})=>e.typography.h3.fontFamily};
-`,S=n.default.View`
+`,A=o.default.View`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: ${({theme:e})=>e.spacing.sm}px 0;
+  padding: ${({theme:e})=>e.spacing.md}px 0;
   border-bottom-width: 1px;
   border-bottom-color: ${({theme:e})=>e.colors.border};
-`,L=n.default.View`
+`,L=o.default.View`
   flex-direction: row;
   align-items: center;
   flex: 1;
-`,q=n.default.View`
+  flex-shrink: 1;
+  margin-right: ${({theme:e})=>e.spacing.md}px;
+`,S=o.default.View`
+  width: 60px;
   height: 8px;
+  background-color: ${({theme:e})=>e.colors.border};
+  border-radius: 4px;
+  margin-right: ${({theme:e})=>e.spacing.md}px;
+  overflow: hidden;
+`,O=o.default.View`
+  height: 100%;
   width: ${({percentage:e})=>e}%;
   background-color: ${({color:e})=>e};
   border-radius: 4px;
-  margin-right: ${({theme:e})=>e.spacing.sm}px;
-`,O=n.default.Text`
+`,q=o.default.Text`
   color: ${({theme:e})=>e.colors.textDark};
   font-size: 14px;
   font-weight: 500;
-  min-width: 60px;
-  text-align: right;
+  flex: 1;
+  flex-shrink: 1;
   font-family: ${({theme:e})=>e.typography.body.fontFamily};
-`;var N=({metrics:e,simulationMetrics:n,loading:h,error:N,riskProfile:U,onRefresh:G,onAddInvestment:J,marketData:K,marketDataLoading:Q,marketDataError:W,lastUpdate:X,onRetry:Y})=>{if(h)return(0,x.jsxs)(f,{children:[(0,x.jsx)(u,{children:(0,x.jsx)(j,{children:"Portf\xf3lio"})}),(0,x.jsxs)(z,{children:[(0,x.jsx)(s.Ionicons,{name:"trending-up-outline",size:32,color:"#8B5CF6"}),(0,x.jsx)(B,{children:"Carregando dados do portf\xf3lio..."})]})]});if(N)return(0,x.jsxs)(f,{children:[(0,x.jsx)(u,{children:(0,x.jsx)(j,{children:"Portf\xf3lio"})}),(0,x.jsxs)(V,{children:[(0,x.jsx)(s.Ionicons,{name:"alert-circle-outline",size:32,color:"#EF4444"}),(0,x.jsx)(k,{children:N}),(0,x.jsx)(I,{title:"Tentar Novamente",onPress:G,variant:"secondary",size:"small"})]})]});const Z=n?.totalInvested||e.totalInvested,ee=n?.futureValue||e.totalValue,te=n?.expectedReturn||0,ie=n?.riskLevel||'M\xe9dio',oe=n?.liquidityLevel||'M\xe9dia',ne=n?.accumulatedReturn||te,re=[{title:'Total Investido',value:(0,l.formatCurrency)(Z),change:0,icon:'wallet-outline',color:'#8B5CF6',isHighlight:!0},{title:'Valor Potencial Futuro',value:(0,l.formatCurrency)(ee),change:te,icon:'trending-up-outline',color:'#10B981',isHighlight:!1},{title:'Rentabilidade Esperada',value:(0,l.formatPercentage)(te),change:0,icon:'analytics-outline',color:'#8B5CF6',isHighlight:!1},{title:'Risco da Carteira',value:ie,change:0,icon:'shield-outline',color:'Baixo'===ie?'#10B981':'M\xe9dio'===ie?'#F59E0B':'#EF4444',isHighlight:!1},{title:'Liquidez',value:oe,change:0,icon:'cash-outline',color:'Alta'===oe?'#10B981':'M\xe9dia'===oe?'#F59E0B':'#EF4444',isHighlight:!1},{title:'Rentabilidade Acumulada',value:(0,l.formatPercentage)(ne),change:0,icon:'stats-chart-outline',color:'#10B981',isHighlight:!1}],ae={'Renda Fixa':'#10B981',Fundos:'#8B5CF6','Renda Vari\xe1vel':'#EF4444'};return(0,x.jsxs)(f,{children:[(0,x.jsxs)(u,{children:[(0,x.jsx)(j,{children:"Portf\xf3lio"}),(0,x.jsx)(y,{title:"Adicionar",onPress:J,variant:"gradient",size:"small",icon:(0,x.jsx)(s.Ionicons,{name:"add",size:14,color:"#FFFFFF"})})]}),U&&(0,x.jsxs)(H,{children:[(0,x.jsxs)(T,{children:[(0,x.jsx)(E,{children:(0,x.jsx)(s.Ionicons,{name:"person-outline",size:20,color:"#FFFFFF"})}),(0,x.jsxs)(t.default,{children:[(0,x.jsx)(R,{children:"Seu Perfil de Investidor"}),(0,x.jsx)(D,{children:U})]})]}),(0,x.jsx)(M,{children:(0,p.getRiskProfileDescription)(U)})]}),(0,x.jsxs)($,{children:[re.map((e,t)=>(0,x.jsxs)(F,{isHighlight:e.isHighlight,children:[(0,x.jsxs)(b,{children:[(0,x.jsx)(w,{color:e.color,children:(0,x.jsx)(s.Ionicons,{name:e.icon,size:16,color:e.color})}),(0,x.jsx)(C,{children:e.title})]}),(0,x.jsx)(v,{isHighlight:e.isHighlight,children:e.value}),0!==e.change&&(0,x.jsxs)(P,{isPositive:e.change>0,children:[e.change>0?'+':'',(0,l.formatPercentage)(e.change)]})]},t)),K&&!Q&&!W&&(0,x.jsxs)(x.Fragment,{children:[(0,x.jsxs)(F,{isCompact:!0,children:[(0,x.jsxs)(b,{children:[(0,x.jsx)(w,{color:"#8B5CF6",isCompact:!0,children:(0,x.jsx)(s.Ionicons,{name:"trending-up-outline",size:12,color:"#8B5CF6"})}),(0,x.jsx)(C,{isCompact:!0,children:"Ibovespa"})]}),(0,x.jsx)(v,{isCompact:!0,children:(0,l.formatCurrency)(K.ibovespa.value)}),0!==K.ibovespa.changePercent&&(0,x.jsxs)(P,{isPositive:K.ibovespa.changePercent>0,isCompact:!0,children:[K.ibovespa.changePercent>0?'+':'',(0,l.formatPercentage)(K.ibovespa.changePercent)]})]}),(0,x.jsxs)(F,{isCompact:!0,children:[(0,x.jsxs)(b,{children:[(0,x.jsx)(w,{color:"#10B981",isCompact:!0,children:(0,x.jsx)(s.Ionicons,{name:"cash-outline",size:12,color:"#10B981"})}),(0,x.jsx)(C,{isCompact:!0,children:"D\xf3lar"})]}),(0,x.jsxs)(v,{isCompact:!0,children:["R$ ",K.dolar.value.toFixed(2)]}),0!==K.dolar.changePercent&&(0,x.jsxs)(P,{isPositive:K.dolar.changePercent>0,isCompact:!0,children:[K.dolar.changePercent>0?'+':'',(0,l.formatPercentage)(K.dolar.changePercent)]})]}),(0,x.jsxs)(F,{isCompact:!0,children:[(0,x.jsxs)(b,{children:[(0,x.jsx)(w,{color:"#EF4444",isCompact:!0,children:(0,x.jsx)(s.Ionicons,{name:"trending-down-outline",size:12,color:"#EF4444"})}),(0,x.jsx)(C,{isCompact:!0,children:"Selic"})]}),(0,x.jsxs)(v,{isCompact:!0,children:[K.selic.toFixed(2),"%"]})]}),(0,x.jsxs)(F,{isCompact:!0,children:[(0,x.jsxs)(b,{children:[(0,x.jsx)(w,{color:"#F59E0B",isCompact:!0,children:(0,x.jsx)(s.Ionicons,{name:"bar-chart-outline",size:12,color:"#F59E0B"})}),(0,x.jsx)(C,{isCompact:!0,children:"IPCA"})]}),(0,x.jsxs)(v,{isCompact:!0,children:[K.ipca.toFixed(2),"%"]})]})]})]}),n&&n.distributionByCategory.length>0&&(0,x.jsxs)(_,{children:[(0,x.jsx)(A,{children:"Distribui\xe7\xe3o por Categoria"}),(0,x.jsx)(c.default,{variant:"elevated",padding:!0,children:n.distributionByCategory.map((e,t)=>(0,x.jsxs)(S,{children:[(0,x.jsxs)(L,{children:[(0,x.jsx)(q,{percentage:e.percentage,color:ae[e.category]||'#8B5CF6'}),(0,x.jsx)(o.default,{style:{fontSize:14,color:'#374151',flex:1},children:e.category})]}),(0,x.jsx)(O,{children:(0,l.formatPercentage)(e.percentage)})]},t))})]})]})}},761,[35,142,285,295,540,762,650,627,654,192]);
+`,N=o.default.Text`
+  color: ${({theme:e})=>e.colors.textDark};
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 70px;
+  text-align: right;
+  margin-left: ${({theme:e})=>e.spacing.sm}px;
+  font-family: ${({theme:e})=>e.typography.body.fontFamily};
+`;var U=({metrics:e,simulationMetrics:o,loading:c,error:U,riskProfile:G,onRefresh:J,onAddInvestment:K,marketData:Q,marketDataLoading:W,marketDataError:X,lastUpdate:Y,onRetry:Z})=>{if(c)return(0,p.jsxs)(x,{children:[(0,p.jsx)(f,{children:(0,p.jsx)(u,{children:"Portf\xf3lio"})}),(0,p.jsxs)(P,{children:[(0,p.jsx)(n.Ionicons,{name:"trending-up-outline",size:32,color:"#8B5CF6"}),(0,p.jsx)(z,{children:"Carregando dados do portf\xf3lio..."})]})]});if(U)return(0,p.jsxs)(x,{children:[(0,p.jsx)(f,{children:(0,p.jsx)(u,{children:"Portf\xf3lio"})}),(0,p.jsxs)(B,{children:[(0,p.jsx)(n.Ionicons,{name:"alert-circle-outline",size:32,color:"#EF4444"}),(0,p.jsx)(k,{children:U}),(0,p.jsx)(V,{title:"Tentar Novamente",onPress:J,variant:"secondary",size:"small"})]})]});const ee=o?.totalInvested||e.totalInvested,te=o?.futureValue||e.totalValue,ie=o?.expectedReturn||0,oe=o?.riskLevel||'M\xe9dio',re=o?.liquidityLevel||'M\xe9dia',ne=o?.accumulatedReturn||ie,ae=[{title:'Total Investido',value:(0,l.formatCurrency)(ee),change:0,icon:'wallet-outline',color:'#8B5CF6',isHighlight:!0},{title:'Valor Potencial Futuro',value:(0,l.formatCurrency)(te),change:ie,icon:'trending-up-outline',color:'#10B981',isHighlight:!1},{title:'Rentabilidade Esperada',value:(0,l.formatPercentage)(ie),change:0,icon:'analytics-outline',color:'#8B5CF6',isHighlight:!1},{title:'Risco da Carteira',value:oe,change:0,icon:'shield-outline',color:'Baixo'===oe?'#10B981':'M\xe9dio'===oe?'#F59E0B':'#EF4444',isHighlight:!1},{title:'Liquidez',value:re,change:0,icon:'cash-outline',color:'Alta'===re?'#10B981':'M\xe9dia'===re?'#F59E0B':'#EF4444',isHighlight:!1},{title:'Rentabilidade Acumulada',value:(0,l.formatPercentage)(ne),change:0,icon:'stats-chart-outline',color:'#10B981',isHighlight:!1}],le={'Renda Fixa':'#10B981',Fundos:'#8B5CF6','Renda Vari\xe1vel':'#EF4444'};return(0,p.jsxs)(x,{children:[(0,p.jsxs)(f,{children:[(0,p.jsx)(u,{children:"Portf\xf3lio"}),(0,p.jsx)(y,{title:"Adicionar",onPress:K,variant:"gradient",size:"small",icon:(0,p.jsx)(n.Ionicons,{name:"add",size:14,color:"#FFFFFF"})})]}),G&&(0,p.jsxs)(I,{children:[(0,p.jsxs)(H,{children:[(0,p.jsx)(T,{children:(0,p.jsx)(n.Ionicons,{name:"person-outline",size:20,color:"#FFFFFF"})}),(0,p.jsxs)(t.default,{children:[(0,p.jsx)(E,{children:"Seu Perfil de Investidor"}),(0,p.jsx)(R,{children:G})]})]}),(0,p.jsx)(D,{children:(0,h.getRiskProfileDescription)(G)})]}),(0,p.jsxs)(j,{children:[ae.map((e,t)=>(0,p.jsxs)($,{isHighlight:e.isHighlight,children:[(0,p.jsxs)(F,{children:[(0,p.jsx)(b,{color:e.color,children:(0,p.jsx)(n.Ionicons,{name:e.icon,size:16,color:e.color})}),(0,p.jsx)(w,{children:e.title})]}),(0,p.jsx)(C,{isHighlight:e.isHighlight,children:e.value}),0!==e.change&&(0,p.jsxs)(v,{isPositive:e.change>0,children:[e.change>0?'+':'',(0,l.formatPercentage)(e.change)]})]},t)),Q&&!W&&!X&&(0,p.jsxs)(p.Fragment,{children:[(0,p.jsxs)($,{isCompact:!0,children:[(0,p.jsxs)(F,{children:[(0,p.jsx)(b,{color:"#8B5CF6",isCompact:!0,children:(0,p.jsx)(n.Ionicons,{name:"trending-up-outline",size:12,color:"#8B5CF6"})}),(0,p.jsx)(w,{isCompact:!0,children:"Ibovespa"})]}),(0,p.jsx)(C,{isCompact:!0,children:(0,l.formatCurrency)(Q.ibovespa.value)}),0!==Q.ibovespa.changePercent&&(0,p.jsxs)(v,{isPositive:Q.ibovespa.changePercent>0,isCompact:!0,children:[Q.ibovespa.changePercent>0?'+':'',(0,l.formatPercentage)(Q.ibovespa.changePercent)]})]}),(0,p.jsxs)($,{isCompact:!0,children:[(0,p.jsxs)(F,{children:[(0,p.jsx)(b,{color:"#10B981",isCompact:!0,children:(0,p.jsx)(n.Ionicons,{name:"cash-outline",size:12,color:"#10B981"})}),(0,p.jsx)(w,{isCompact:!0,children:"D\xf3lar"})]}),(0,p.jsxs)(C,{isCompact:!0,children:["R$ ",Q.dolar.value.toFixed(2)]}),0!==Q.dolar.changePercent&&(0,p.jsxs)(v,{isPositive:Q.dolar.changePercent>0,isCompact:!0,children:[Q.dolar.changePercent>0?'+':'',(0,l.formatPercentage)(Q.dolar.changePercent)]})]}),(0,p.jsxs)($,{isCompact:!0,children:[(0,p.jsxs)(F,{children:[(0,p.jsx)(b,{color:"#EF4444",isCompact:!0,children:(0,p.jsx)(n.Ionicons,{name:"trending-down-outline",size:12,color:"#EF4444"})}),(0,p.jsx)(w,{isCompact:!0,children:"Selic"})]}),(0,p.jsxs)(C,{isCompact:!0,children:[Q.selic.toFixed(2),"%"]})]}),(0,p.jsxs)($,{isCompact:!0,children:[(0,p.jsxs)(F,{children:[(0,p.jsx)(b,{color:"#F59E0B",isCompact:!0,children:(0,p.jsx)(n.Ionicons,{name:"bar-chart-outline",size:12,color:"#F59E0B"})}),(0,p.jsx)(w,{isCompact:!0,children:"IPCA"})]}),(0,p.jsxs)(C,{isCompact:!0,children:[Q.ipca.toFixed(2),"%"]})]})]})]}),o&&o.distributionByCategory.length>0&&(0,p.jsxs)(M,{children:[(0,p.jsx)(_,{children:"Distribui\xe7\xe3o por Categoria"}),(0,p.jsx)(s.default,{variant:"elevated",padding:!0,children:o.distributionByCategory.map((e,t)=>(0,p.jsxs)(A,{children:[(0,p.jsxs)(L,{children:[(0,p.jsx)(S,{children:(0,p.jsx)(O,{percentage:e.percentage,color:le[e.category]||'#8B5CF6'})}),(0,p.jsx)(q,{numberOfLines:1,children:e.category})]}),(0,p.jsx)(N,{children:(0,l.formatPercentage)(e.percentage)})]},t))})]})]})}},761,[35,142,295,540,762,650,627,654,192]);
 __d(function(g,r,i,a,m,e,_d){"use strict";Object.defineProperty(e,'__esModule',{value:!0}),Object.defineProperty(e,"formatCurrency",{enumerable:!0,get:function(){return t}}),Object.defineProperty(e,"formatPercentage",{enumerable:!0,get:function(){return n}}),Object.defineProperty(e,"formatDate",{enumerable:!0,get:function(){return o}});const t=t=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(t),n=t=>`${t.toFixed(2)}%`,o=t=>('string'==typeof t?new Date(t):t).toLocaleDateString('pt-BR')},762,[]);
 __d(function(g,r,i,a,m,_e,d){"use strict";function e(e){return e&&e.__esModule?e:{default:e}}Object.defineProperty(_e,'__esModule',{value:!0}),Object.defineProperty(_e,"default",{enumerable:!0,get:function(){return L}});var t=r(d[0]),o=e(r(d[1])),n=e(r(d[2])),l=e(r(d[3])),s=r(d[4]),c=r(d[5]),x=e(r(d[6])),p=r(d[7]),f=r(d[8]);const h=l.default.View`
   margin-bottom: ${({theme:e})=>e.spacing.lg}px;
